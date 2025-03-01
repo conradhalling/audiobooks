@@ -13,7 +13,6 @@ EXAMPLE
 
 ASSUMPTIONS
     -   Titles are unique.
-    -   Ratings from 0 to 5 stars.
 
 TESTS
     -   Loading the data twice does not cause duplicated data.
@@ -21,12 +20,8 @@ TESTS
         sqlite3.IntegrityError exception.
 
 TO DO
+    -   Where do I track purchases?
     -   Update my ratings for a 0 to 5 scale.
-    -   tbl_vendor
-            id INTEGER PRIMARY KEY
-            name TEXT NOT NULL
-            1 'audible.com'
-            2 'cloudLibrary'
     -   tbl_book_vendor
             book_vendor_id INTEGER PRIMARY KEY
             book_id NOT NULL
@@ -34,32 +29,26 @@ TO DO
             purchase_type_id (f.k. to tbl_purchase_type) NOT NULL
             audible_credits INTEGER NULL
             price_in_cents INTEGER NULL
-    -   tbl_purchase_type
+    -   tbl_acquisition
             id
-            purchase_type
-            1 'audible.com credit'
-            2 'audible.com extra'
-            3 'audible.com plus'
-            4 'cloudLibrary free'
+            acquisition_type_id (fk tbl_acquisition_type(id))
+            charge_amount_cents INTEGER
+            acquisition_date
     -   tbl_event_type
             id
             event_type TEXT NOT NULL
-            1   purchased
+            1   'started'
+            2   'finished'
     -   tbl_event
             id INTEGER PRIMARY KEY
             book_id INTEGER NOT NULL
             event_type_id INTEGER NOT NULL
             date TEXT NOT NULL
-    -   tbl_rating
+    -   tbl_book_rating
             id INTEGER PRIMARY KEY
-            stars INTEGER NOT NULL
-            description TEXT NOT NULL
-            1 0 'terrible'
-            2 1 'poor'
-            3 2 'OK'
-            4 3 'good'
-            5 4 'very good'
-            6 5 'excellent'
+            book_id INTEGER NOT NULL (fk)
+            rating_id INTEGER NOT NULL (fk)
+            notes TEXT
     -   How to manage identical titles (Serkis and Inglis narrations of The
         Fellowship of the Ring, for example). Can I come up with a unique key
         that is a combination of title and narrator?
@@ -145,6 +134,25 @@ def db_create_tables(conn):
     db_create_tbl_book_author(conn)
     db_create_tbl_book_narrator(conn)
     db_create_tbl_book_translator(conn)
+    db_create_tbl_vendor(conn)
+    db_create_tbl_acquisition_type(conn)
+    db_create_tbl_rating(conn)
+
+
+def db_create_tbl_acquisition_type(conn):
+    logger.debug("Creating tbl_acqusition_type...")
+    sql_create_tbl_acquisition_type = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_acquisition_type
+        (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL
+        )
+    """
+    conn.execute(sql_create_tbl_acquisition_type)
+    acquisition_types = ['vendor credit', 'charge', 'no charge']
+    for acquisition_type in acquisition_types:
+        db_save_acquisition_type(conn, acquisition_type)
 
 
 def db_create_tbl_author(conn):
@@ -157,30 +165,6 @@ def db_create_tbl_author(conn):
             name TEXT NOT NULL UNIQUE
         )"""
     conn.execute(sql_create_tbl_author)
-
-
-def db_create_tbl_narrator(conn):
-    logger.debug("Creating table tbl_narrator...")
-    sql_create_tbl_narrator = """
-        CREATE TABLE IF NOT EXISTS
-        tbl_narrator
-        (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE
-        )"""
-    conn.execute(sql_create_tbl_narrator)
-
-
-def db_create_tbl_translator(conn):
-    logger.debug("Creating table tbl_translator...")
-    sql_create_tbl_translator = """
-        CREATE TABLE IF NOT EXISTS
-        tbl_translator
-        (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE
-        )"""
-    conn.execute(sql_create_tbl_translator)
 
 
 def db_create_tbl_book(conn):
@@ -245,6 +229,106 @@ def db_create_tbl_book_translator(conn):
         )
     """
     conn.execute(sql_create_tbl_book_translator)
+
+
+def db_create_tbl_narrator(conn):
+    logger.debug("Creating table tbl_narrator...")
+    sql_create_tbl_narrator = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_narrator
+        (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE
+        )"""
+    conn.execute(sql_create_tbl_narrator)
+
+
+def db_create_tbl_rating(conn):
+    logger.debug("Creating table tbl_rating...")
+    sql_create_tbl_rating = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_rating
+        (
+            id INTEGER PRIMARY KEY,
+            stars INTEGER NOT NULL,
+            description TEXT NOT NULL
+        )
+    """
+    conn.execute(sql_create_tbl_rating)
+    ratings = [
+        (0, "very bad",),
+        (1, "poor",),
+        (2, "meh",),
+        (3, "good",),
+        (4, "very good",),
+        (5, "excellent",),
+    ]
+    for rating in ratings:
+        db_save_rating(conn, rating[0], rating[1])
+
+
+def db_create_tbl_translator(conn):
+    logger.debug("Creating table tbl_translator...")
+    sql_create_tbl_translator = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_translator
+        (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE
+        )
+    """
+    conn.execute(sql_create_tbl_translator)
+
+
+def db_create_tbl_vendor(conn):
+    logger.debug("Creating tbl_vendor...")
+    sql_create_tbl_vendor = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_vendor
+        (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL
+        )
+    """
+    conn.execute(sql_create_tbl_vendor)
+    vendors = ["audible.com", "cloudLibrary"]
+    for vendor in vendors:
+        db_save_vendor(conn, vendor)
+
+
+def db_save_acquisition_type(conn, acquisition_type):
+    sql_select_acquisition_type_id = """
+        SELECT
+            tbl_acquisition_type.id
+        FROM
+            tbl_acquisition_type
+        WHERE
+            tbl_acquisition_type.name = ?
+    """
+    sql_insert_acquisition_type = """
+        INSERT INTO tbl_acquisition_type
+        (
+            name
+        )
+        VALUES (?)
+    """
+    logger.debug(f"acquisition_type: '{acquisition_type}'")
+
+    # Is the acquisition_type already in tbl_acquisition_type?
+    cur = conn.execute(sql_select_acquisition_type_id, (acquisition_type,))
+    db_row = cur.fetchone()
+    logger.debug(f"acquisition_type_id: {db_row}")
+    if db_row is not None:
+        acquisition_type_id = db_row[0]
+        logger.debug(f"existing acquisition_type_id: {acquisition_type_id}")
+    else:
+        # Insert a new acquisition type.
+        logger.debug(f"Inserting '{acquisition_type}' into tbl_acquisition_type")
+        cur = conn.execute(sql_insert_acquisition_type, (acquisition_type,))
+        acquisition_type_id = cur.lastrowid
+        logger.debug(f"new acquisition_type_id: {acquisition_type_id}")
+    logger.debug(f"acquisition_type_id: {acquisition_type_id}")
+    return acquisition_type_id
 
 
 def db_save_author(conn, author):
@@ -469,6 +553,43 @@ def db_save_narrator(conn, narrator):
     return narrator_id
 
 
+def db_save_rating(conn, stars, description):
+    sql_select_rating_id = """
+        SELECT
+            tbl_rating.id
+        FROM
+            tbl_rating
+        WHERE
+            tbl_rating.stars = ?
+            and tbl_rating.description = ?
+    """
+    sql_insert_rating = """
+        INSERT INTO tbl_rating
+        (
+            stars,
+            description
+        )
+        VALUES (?, ?)
+    """
+    logger.debug(f"rating: ({stars}, '{description}'")
+
+    # Is the rating already in tbl_rating?
+    cur = conn.execute(sql_select_rating_id, (stars, description,))
+    db_row = cur.fetchone()
+    logger.debug(f"rating_id: {db_row}")
+    if db_row is not None:
+        rating_id = db_row[0]
+        logger.debug(f"existing rating_id: {rating_id}")
+    else:
+        # Insert a new rating.
+        logger.debug(f"Inserting '({stars}, '{description}' into tbl_rating")
+        cur = conn.execute(sql_insert_rating, (stars, description,))
+        rating_id = cur.lastrowid
+        logger.debug(f"new rating_id: {rating_id}")
+    logger.debug(f"rating_id: {rating_id}")
+    return rating_id
+
+
 def db_save_translator(conn, translator):
     sql_select_translator_id = """
         SELECT
@@ -502,6 +623,41 @@ def db_save_translator(conn, translator):
         logger.debug(f"new translator_id: {translator_id}")
     logger.debug(f"translator_id: {translator_id}")
     return translator_id
+
+
+def db_save_vendor(conn, vendor):
+    sql_select_vendor_id = """
+        SELECT
+            tbl_vendor.id
+        FROM
+            tbl_vendor
+        WHERE
+            tbl_vendor.name = ?
+    """
+    sql_insert_vendor = """
+        INSERT INTO tbl_vendor
+        (
+            name
+        )
+        VALUES (?)
+    """
+    logger.debug(f"vendor: '{vendor}'")
+
+    # Is the vendor already in tbl_vendor?
+    cur = conn.execute(sql_select_vendor_id, (vendor,))
+    db_row = cur.fetchone()
+    logger.debug(f"vendor_id: {db_row}")
+    if db_row is not None:
+        vendor_id = db_row[0]
+        logger.debug(f"existing vendor_id: {vendor_id}")
+    else:
+        # Insert a new vendor.
+        logger.debug(f"Inserting '{vendor}' into tbl_vendor")
+        cur = conn.execute(sql_insert_vendor, (vendor,))
+        vendor_id = cur.lastrowid
+        logger.debug(f"new vendor_id: {vendor_id}")
+    logger.debug(f"vendor_id: {vendor_id}")
+    return vendor_id
 
 
 def db_test_foreign_key_enforcement(conn):
