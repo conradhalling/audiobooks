@@ -11,8 +11,9 @@ EXAMPLE
         --log_level  debug \
         --commit
 
-ASSUMPTION
-    Titles are unique.
+ASSUMPTIONS
+    -   Titles are unique.
+    -   Ratings from 0 to 5 stars.
 
 TESTS
     -   Loading the data twice does not cause duplicated data.
@@ -20,7 +21,49 @@ TESTS
         sqlite3.IntegrityError exception.
 
 TO DO
-    -   Add a column for translator.
+    -   Update my ratings for a 0 to 5 scale.
+    -   tbl_vendor
+            id INTEGER PRIMARY KEY
+            name TEXT NOT NULL
+            1 'audible.com'
+            2 'cloudLibrary'
+    -   tbl_book_vendor
+            book_vendor_id INTEGER PRIMARY KEY
+            book_id NOT NULL
+            vendor_id NOT NULL
+            purchase_type_id (f.k. to tbl_purchase_type) NOT NULL
+            audible_credits INTEGER NULL
+            price_in_cents INTEGER NULL
+    -   tbl_purchase_type
+            id
+            purchase_type
+            1 'audible.com credit'
+            2 'audible.com extra'
+            3 'audible.com plus'
+            4 'cloudLibrary free'
+    -   tbl_event_type
+            id
+            event_type TEXT NOT NULL
+            1   purchased
+    -   tbl_event
+            id INTEGER PRIMARY KEY
+            book_id INTEGER NOT NULL
+            event_type_id INTEGER NOT NULL
+            date TEXT NOT NULL
+    -   tbl_rating
+            id INTEGER PRIMARY KEY
+            stars INTEGER NOT NULL
+            description TEXT NOT NULL
+            1 0 'terrible'
+            2 1 'poor'
+            3 2 'OK'
+            4 3 'good'
+            5 4 'very good'
+            6 5 'excellent'
+    -   How to manage identical titles (Serkis and Inglis narrations of The
+        Fellowship of the Ring, for example). Can I come up with a unique key
+        that is a combination of title and narrator?
+    -   Move the database interaction code into its own module.
 """
 
 import argparse
@@ -38,7 +81,7 @@ def init_logging(log_file, log_level):
     logging_numeric_level = getattr(logging, log_level.upper(), None)
     if not isinstance(logging_numeric_level, int):
         raise ValueError('Invalid log level: %s' % log_level)
-    format = "[%(filename)s:%(lineno)4d - %(funcName)20s() ] %(levelname)s: %(message)s"
+    format = "[%(filename)s:%(lineno)4d - %(funcName)35s() ] %(levelname)s: %(message)s"
     logging.basicConfig(
         filename=log_file,
         encoding='utf-8',
@@ -95,6 +138,16 @@ def parse_args():
 
 
 def db_create_tables(conn):
+    db_create_tbl_author(conn)
+    db_create_tbl_narrator(conn)
+    db_create_tbl_translator(conn)
+    db_create_tbl_book(conn)
+    db_create_tbl_book_author(conn)
+    db_create_tbl_book_narrator(conn)
+    db_create_tbl_book_translator(conn)
+
+
+def db_create_tbl_author(conn):
     logger.debug("Creating table tbl_author...")
     sql_create_tbl_author = """
         CREATE TABLE IF NOT EXISTS
@@ -105,6 +158,32 @@ def db_create_tables(conn):
         )"""
     conn.execute(sql_create_tbl_author)
 
+
+def db_create_tbl_narrator(conn):
+    logger.debug("Creating table tbl_narrator...")
+    sql_create_tbl_narrator = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_narrator
+        (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE
+        )"""
+    conn.execute(sql_create_tbl_narrator)
+
+
+def db_create_tbl_translator(conn):
+    logger.debug("Creating table tbl_translator...")
+    sql_create_tbl_translator = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_translator
+        (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE
+        )"""
+    conn.execute(sql_create_tbl_translator)
+
+
+def db_create_tbl_book(conn):
     logger.debug("Creating table tbl_book...")
     sql_create_tbl_book = """
         CREATE TABLE IF NOT EXISTS
@@ -119,6 +198,8 @@ def db_create_tables(conn):
     """
     conn.execute(sql_create_tbl_book)
 
+
+def db_create_tbl_book_author(conn):
     logger.debug("Creating tbl_book_author...")
     sql_create_tbl_book_author = """
         CREATE TABLE IF NOT EXISTS
@@ -127,11 +208,43 @@ def db_create_tables(conn):
             id INTEGER PRIMARY KEY,
             book_id INTEGER NOT NULL,
             author_id INTEGER NOT NULL,
-            FOREIGN KEY (author_id) REFERENCES tbl_author(id),
-            FOREIGN KEY (book_id) REFERENCES tbl_book(id)
+            FOREIGN KEY (book_id) REFERENCES tbl_book(id),
+            FOREIGN KEY (author_id) REFERENCES tbl_author(id)
         )
     """
     conn.execute(sql_create_tbl_book_author)
+
+
+def db_create_tbl_book_narrator(conn):
+    logger.debug("Creating tbl_book_narrator...")
+    sql_create_tbl_book_narrator = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_book_narrator
+        (
+            id INTEGER PRIMARY KEY,
+            book_id INTEGER NOT NULL,
+            narrator_id INTEGER NOT NULL,
+            FOREIGN KEY (book_id) REFERENCES tbl_book(id),
+            FOREIGN KEY (narrator_id) REFERENCES tbl_narrator(id)
+        )
+    """
+    conn.execute(sql_create_tbl_book_narrator)
+
+
+def db_create_tbl_book_translator(conn):
+    logger.debug("Creating tbl_book_translator...")
+    sql_create_tbl_book_translator = """
+        CREATE TABLE IF NOT EXISTS
+        tbl_book_translator
+        (
+            id INTEGER PRIMARY KEY,
+            book_id INTEGER NOT NULL,
+            translator_id INTEGER NOT NULL,
+            FOREIGN KEY (book_id) REFERENCES tbl_book(id),
+            FOREIGN KEY (translator_id) REFERENCES tbl_translator(id)
+        )
+    """
+    conn.execute(sql_create_tbl_book_translator)
 
 
 def db_save_author(conn, author):
@@ -247,6 +360,150 @@ def db_save_book_author(conn, book_id, author_id):
     return book_author_id
 
 
+def db_save_book_narrator(conn, book_id, narrator_id):
+    sql_select_book_narrator_id = """
+    SELECT
+        tbl_book_narrator.id
+    FROM
+        tbl_book_narrator
+    WHERE
+        tbl_book_narrator.book_id = ?
+        AND tbl_book_narrator.narrator_id = ?
+    """
+    sql_insert_book_narrator = """
+    INSERT INTO
+        tbl_book_narrator
+        (
+            book_id,
+            narrator_id
+        )
+        VALUES (?, ?)
+    """
+    logger.debug(f"book_id: {book_id}; narrator_id: {narrator_id}")
+
+    # Is the book_id-narrator_id combination already in tbl_book_narrator?
+    cur = conn.execute(sql_select_book_narrator_id, (book_id, narrator_id,))
+    db_row = cur.fetchone()
+    logger.debug(f"book_narrator_id: {db_row}")
+    if db_row is not None:
+        book_narrator_id = db_row[0]
+        logger.debug(f"existing book_narrator_id: {book_narrator_id}")
+    else:
+        logger.debug(f"Inserting book_id {book_id} and narrator_id {narrator_id} into tbl_book_narrator...")
+        cur = conn.execute(sql_insert_book_narrator, (book_id, narrator_id,))
+        book_narrator_id = cur.lastrowid
+        logger.debug(f"new book_narrator_id: {book_narrator_id}")
+    logger.debug(f"book_narrator_id: {book_narrator_id}")
+    return book_narrator_id
+
+
+def db_save_book_translator(conn, book_id, translator_id):
+    sql_select_book_translator_id = """
+    SELECT
+        tbl_book_translator.id
+    FROM
+        tbl_book_translator
+    WHERE
+        tbl_book_translator.book_id = ?
+        AND tbl_book_translator.translator_id = ?
+    """
+    sql_insert_book_translator = """
+    INSERT INTO
+        tbl_book_translator
+        (
+            book_id,
+            translator_id
+        )
+        VALUES (?, ?)
+    """
+    logger.debug(f"book_id: {book_id}; translator_id: {translator_id}")
+
+    # Is the book_id-translator_id combination already in tbl_book_translator?
+    cur = conn.execute(sql_select_book_translator_id, (book_id, translator_id,))
+    db_row = cur.fetchone()
+    logger.debug(f"book_translator_id: {db_row}")
+    if db_row is not None:
+        book_translator_id = db_row[0]
+        logger.debug(f"existing book_translator_id: {book_translator_id}")
+    else:
+        logger.debug(f"Inserting book_id {book_id} and translator_id {translator_id} into tbl_book_translator...")
+        cur = conn.execute(sql_insert_book_translator, (book_id, translator_id,))
+        book_translator_id = cur.lastrowid
+        logger.debug(f"new book_translator_id: {book_translator_id}")
+    logger.debug(f"book_translator_id: {book_translator_id}")
+    return book_translator_id
+
+
+def db_save_narrator(conn, narrator):
+    sql_select_narrator_id = """
+        SELECT
+            tbl_narrator.id
+        FROM
+            tbl_narrator
+        WHERE
+            tbl_narrator.name = ?
+    """
+    sql_insert_narrator = """
+        INSERT INTO tbl_narrator
+        (
+            name
+        )
+        VALUES (?)
+    """
+    logger.debug(f"narrator: '{narrator}'")
+
+    # Is the narrator already in tbl_narrator?
+    cur = conn.execute(sql_select_narrator_id, (narrator,))
+    db_row = cur.fetchone()
+    logger.debug(f"narrator_id: {db_row}")
+    if db_row is not None:
+        narrator_id = db_row[0]
+        logger.debug(f"existing narrator_id: {narrator_id}")
+    else:
+        # Insert a new narrator.
+        logger.debug(f"Inserting '{narrator}' into tbl_narrator")
+        cur = conn.execute(sql_insert_narrator, (narrator,))
+        narrator_id = cur.lastrowid
+        logger.debug(f"new narrator_id: {narrator_id}")
+    logger.debug(f"narrator_id: {narrator_id}")
+    return narrator_id
+
+
+def db_save_translator(conn, translator):
+    sql_select_translator_id = """
+        SELECT
+            tbl_translator.id
+        FROM
+            tbl_translator
+        WHERE
+            tbl_translator.name = ?
+    """
+    sql_insert_translator = """
+        INSERT INTO tbl_translator
+        (
+            name
+        )
+        VALUES (?)
+    """
+    logger.debug(f"translator: '{translator}'")
+
+    # Is the translator already in tbl_translator?
+    cur = conn.execute(sql_select_translator_id, (translator,))
+    db_row = cur.fetchone()
+    logger.debug(f"translator_id: {db_row}")
+    if db_row is not None:
+        translator_id = db_row[0]
+        logger.debug(f"existing translator_id: {translator_id}")
+    else:
+        # Insert a new translator.
+        logger.debug(f"Inserting '{translator}' into tbl_translator")
+        cur = conn.execute(sql_insert_translator, (translator,))
+        translator_id = cur.lastrowid
+        logger.debug(f"new translator_id: {translator_id}")
+    logger.debug(f"translator_id: {translator_id}")
+    return translator_id
+
+
 def db_test_foreign_key_enforcement(conn):
     # Attempt to delete a row from table authors.
     # This should cause a foreign key constraint problem.
@@ -272,10 +529,39 @@ def save_authors(conn, authors_str):
     author_ids = []
     for author in authors:
         author = author.strip()
-        author_id = db_save_author(conn, author)
-        author_ids.append(author_id)
+        if author != "":
+            author_id = db_save_author(conn, author)
+            author_ids.append(author_id)
     logger.debug(f"author ids: {author_ids}")
     return author_ids
+
+
+def save_narrators(conn, narrators_str):
+    logger.debug(f"narrators_str: '{narrators_str}'")
+    narrators = narrators_str.split(sep="&")
+    logger.debug(f"narrators: {narrators}")
+    narrator_ids = []
+    for narrator in narrators:
+        narrator = narrator.strip()
+        if narrator != "":
+            narrator_id = db_save_narrator(conn, narrator)
+            narrator_ids.append(narrator_id)
+    logger.debug(f"narrator ids: {narrator_ids}")
+    return narrator_ids
+
+
+def save_translators(conn, translators_str):
+    logger.debug(f"translators_str: '{translators_str}'")
+    translators = translators_str.split(sep="&")
+    logger.debug(f"translators: {translators}")
+    translator_ids = []
+    for translator in translators:
+        translator = translator.strip()
+        if translator != "":
+            translator_id = db_save_translator(conn, translator)
+            translator_ids.append(translator_id)
+    logger.debug(f"translator ids: {translator_ids}")
+    return translator_ids
 
 
 def save_book(conn, title, pub_date, hours, minutes):
@@ -319,11 +605,21 @@ def save_data(csv_file, db_file, commit_flag):
             logger.debug(f"csv_authors: '{csv_authors}'")
             author_ids = save_authors(conn, csv_authors)
 
+            # Insert one or more new translators into tbl_translator.
+            csv_translators = csv_row[2]
+            logger.debug(f"csv_translators: '{csv_translators}'")
+            translator_ids = save_translators(conn, csv_translators)
+
+            # Insert one or more new authors into tbl_author.
+            csv_narrators = csv_row[3]
+            logger.debug(f"csv_narrators: '{csv_narrators}'")
+            narrator_ids = save_narrators(conn, csv_narrators)
+
             # Insert title into tbl_book.
             csv_title = csv_row[0]
-            csv_pub_date = csv_row[2]
-            csv_hours = csv_row[3]
-            csv_minutes = csv_row[4]
+            csv_pub_date = csv_row[4]
+            csv_hours = csv_row[5]
+            csv_minutes = csv_row[6]
             logger.debug(f"csv_title: '{csv_title}'")
             logger.debug(f"csv_pub_date: '{csv_pub_date}'")
             logger.debug(f"hours: '{csv_hours}'")
@@ -333,6 +629,14 @@ def save_data(csv_file, db_file, commit_flag):
             # Insert book ID and associated author IDs into tbl_book_author.
             for author_id in author_ids:
                 db_save_book_author(conn, book_id, author_id)
+            
+            # Insert book and associated translators into tbl_book_translators.
+            for translator_id in translator_ids:
+                db_save_book_translator(conn, book_id, translator_id)
+            
+            # Insert book and associated narrators into tbl_book_narrators.
+            for narrator_id in narrator_ids:
+                db_save_book_narrator(conn, book_id, narrator_id)
 
     # Test enforcement of foreign key constraints.
     db_test_foreign_key_enforcement(conn)
