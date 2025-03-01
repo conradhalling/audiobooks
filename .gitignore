@@ -154,4 +154,4 @@ cython_debug/
 # Specific to this project.
 .DS_Store
 data/
-*.log
+log/
