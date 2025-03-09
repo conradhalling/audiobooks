@@ -15,9 +15,11 @@ def start_html():
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Document</title>
+            <title>Audiobooks</title>
+            <link rel="stylesheet" href="styles.css">
           </head>
-          <body>"""
+          <body>
+            <h1>Audiobooks</h1>"""
     print(textwrap.dedent(html_start))
 
 
@@ -30,7 +32,6 @@ def end_html():
 
 def print_table():
     # Open a connection.
-    # db_file = "/Users/halto/src/conradhalling/audiobooks/data/audiobooks.sqlite3"
     db_file = os.environ.get("SQLITE3_DB")
     conn = sqlite3.connect(database=db_file)
 
@@ -62,18 +63,22 @@ def print_table():
                 on tbl_book_narrator.narrator_id = tbl_narrator.id
     """
     result_set = conn.execute(sql01)
-    print("    <table>")
-    print("      <thead>")
-    print("        <tr>")
+    print('    <table class="adaptive">')
+    print('      <thead class="adaptive">')
+    print('        <tr class="adaptive">')
     for col_name in ["title", "author", "length", "pub_date", "translator", "narrator"]:
-        print(f"          <th>{col_name}</th>")
+        print(f'          <th class="adaptive">{col_name}</th>')
     print("        </tr>")
     print("      </thead>")
-    print("      <tbody>")
+    print('      <tbody class="adaptive">')
     for row in result_set:
-        print("        <tr>")
-        for item in row:
-            print(f"          <td>{item if item is not None else ''}</td>")
+        print('        <tr class="adaptive">')
+        print(f'          <td class="adaptive">{row[0]}</td>') # title
+        print(f'          <td class="adaptive">{row[1]}</td>') # author
+        print(f'          <td class="adaptive right">{row[2]}</td>') # length
+        print(f'          <td class="adaptive">{row[3] if row[3] is not None else ""}</td>') # pub_date
+        print(f'          <td class="adaptive">{row[4] if row[4] is not None else ""}</td>') # translator
+        print(f'          <td class="adaptive">{row[5] if row[5] is not None else ""}</td>') # narrator
         print("        </tr>")
     print("      </tbody>")
     print("    </table>")
@@ -82,7 +87,6 @@ def print_table():
 def main():
     print("Content-Type: text/html\r\n\r\n", end="")
     start_html()
-    print("    <h1>Audiobooks</h1>")
     print_table()
     end_html()
 

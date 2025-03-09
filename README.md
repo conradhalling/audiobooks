@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is a simlple Python CGI application for tracking the audiobooks I've read.
+This is a simple Python CGI application for tracking the audiobooks I've read.
 I am constrained to use CGI because my shared hosting server supports only PHP
 or CGI and not WSGI.
 

@@ -1,0 +1,85 @@
+:root {
+  font-family: Georgia, serif;
+  line-height: 2rem;
+  background-color: #f2f2f2;
+  color: #000000;
+}
+
+p {
+  max-width: 40rem;
+  font-size: larger;
+}
+
+table {
+  table-layout: fixed;
+  border-collapse: collapse;
+  border: 3px solid #bfbfbf;
+  line-height: 1rem;
+}
+
+table > caption {
+  text-align: left;
+  font-family: Verdana;
+}
+
+table > thead > tr {
+  background-color: #d9d9d9;
+}
+
+tbody > tr:nth-child(odd) {
+  background-color: #f2f2f2;
+}
+
+tbody > tr:nth-child(even) {
+  background-color: #e6e6e6;
+}
+
+th, td {
+  border: 1px solid #bfbfbf;
+  font-family: Verdana;
+  font-size: 0.625rem;
+  padding: 2px 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 15rem;
+}
+
+.right {
+  text-align: right;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+
+  table.adaptive {
+    border: 3px solid #404040;
+  }
+
+  thead tr.adaptive {
+    background-color: #333333;
+  }
+
+  tbody tr:nth-child(odd).adaptive {
+    background-color: #1a1a1a;
+  }
+
+  tbody tr:nth-child(even).adaptive {
+    background-color: #262626;
+  }
+
+  th.adaptive,
+  td.adaptive {
+    border: 1px solid #404040;
+  }
+
+  a.adaptive {
+    color: rgb(140, 180, 255);
+  }
+
+  a:visited.adaptive {
+    color: rgb(255, 173, 255);
+  }
+}
