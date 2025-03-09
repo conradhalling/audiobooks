@@ -7,7 +7,7 @@ EXAMPLE
     python3 create_db.py \
         --csv_file   data/audible.csv \
         --db_file    data/audiobooks.sqlite3 \
-        --log_file   log/create_db.log \
+        --log_file   logs/create_db.log \
         --log_level  debug \
         --commit
 
