@@ -3,11 +3,12 @@ Database interactions with tbl_author.
 """
 
 import logging
-
 logger = logging.getLogger(__name__)
 
+from . import conn
 
-def create_table(conn):
+
+def create_table():
     """
     Create tbl_author.
     """
@@ -20,10 +21,10 @@ def create_table(conn):
             name TEXT NOT NULL UNIQUE
         )
     """
-    conn.execute(sql_create_table)
+    conn.conn.execute(sql_create_table)
 
 
-def insert(conn, author):
+def insert(author):
     """
     Insert the author and return the new author_id.
     Raises an exception if the author is already in the database.
@@ -36,27 +37,27 @@ def insert(conn, author):
         )
         VALUES (?)
     """
-    cur = conn.execute(sql_insert, (author,))
+    cur = conn.conn.execute(sql_insert, (author,))
     author_id = cur.lastrowid
     logger.debug(f"New author_id: {author_id}")
     return author_id
 
 
-def save(conn, author):
+def save(author):
     """
     If the author exists, select the existing author_id.
     Otherwise, insert the author and get the new author_id.
     Return the author_id.
     """
     logger.debug(f"author: '{author}'")
-    author_id = select_id(conn, author)
+    author_id = select_id(author)
     if author_id is None:
-        author_id = insert(conn, author)
+        author_id = insert(author)
     logger.debug(f"author_id for author {author}: {author_id}")
     return author_id
 
 
-def select_id(conn, author):
+def select_id(author):
     """
     Select and return the ID for the author.
     Return None if the author is not in the database.
@@ -70,7 +71,7 @@ def select_id(conn, author):
         WHERE
             tbl_author.name = ?
     """
-    cur = conn.execute(sql_select_id, (author,))
+    cur = conn.conn.execute(sql_select_id, (author,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for author '{author}': {db_row}")
     author_id = None

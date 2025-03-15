@@ -6,6 +6,7 @@ EXAMPLE
     python3 create_db.py \
         --csv_file      data/audible.csv \
         --db_file       data/audiobooks.sqlite3 \
+        --vendor        audible.com \
         --log_file      logs/create_db.log \
         --log_level     debug \
         --transaction   commit
@@ -20,19 +21,20 @@ TESTS
 
 TO DO
     -   Where do I track purchases?
-    -   Update my ratings for a 0 to 5 scale.
-    -   tbl_book_vendor
-            book_vendor_id INTEGER PRIMARY KEY
+
+        A book is acquired once from a vendor.
+        A book can be acquired multiple times from different vendors.
+        So the combinaton of book_id and vendor_id must be unique.
+
+    -   tbl_book_acquisition
+            id INTEGER PRIMARY KEY
             book_id NOT NULL
             vendor_id NOT NULL
-            purchase_type_id (f.k. to tbl_purchase_type) NOT NULL
+            acquisition_type_id (f.k. to tbl_acquisition_type) NOT NULL
             audible_credits INTEGER NULL
             price_in_cents INTEGER NULL
-    -   tbl_acquisition
-            id
-            acquisition_type_id (fk tbl_acquisition_type(id))
-            charge_amount_cents INTEGER
-            acquisition_date
+            acquisition_date TEXT NOT NULL
+            UNIQUE (book_id, vendor_id)
     -   tbl_event_type
             id
             event_type TEXT NOT NULL
@@ -58,10 +60,11 @@ import argparse
 import csv
 import logging
 import os
-import sqlite3
+import sys
 import textwrap
+import traceback
 
-import db
+import db.conn
 import utils
 
 logger = logging.getLogger(__name__)
@@ -76,6 +79,7 @@ def parse_args():
           python3 {os.path.basename(__file__)} \
             --csv_file      data/audible.csv \
             --db_file       data/audiobooks.sqlite3 \
+            --vendor        audible.com \
             --log_file      logs/create_db.log \
             --log_level     debug \
             --transaction   commit""")
@@ -88,6 +92,12 @@ def parse_args():
     parser.add_argument(
         "--db_file",
         help="sqlite3 database file",
+        required=True,
+    )
+    parser.add_argument(
+        "--vendor",
+        choices=["audible.com", "cloudLibrary"],
+        help="audiobook vendor",
         required=True,
     )
     parser.add_argument(
@@ -121,7 +131,7 @@ def save_authors(conn, authors_str):
     for author in authors:
         author = author.strip()
         if author != "":
-            author_id = db.author.save(conn, author)
+            author_id = db.author.save(author)
             author_ids.append(author_id)
     logger.debug(f"author ids: {author_ids}")
     return author_ids
@@ -135,7 +145,7 @@ def save_narrators(conn, narrators_str):
     for narrator in narrators:
         narrator = narrator.strip()
         if narrator != "":
-            narrator_id = db.narrator.save(conn, narrator)
+            narrator_id = db.narrator.save(narrator)
             narrator_ids.append(narrator_id)
     logger.debug(f"narrator ids: {narrator_ids}")
     return narrator_ids
@@ -155,25 +165,28 @@ def save_translators(conn, translators_str):
     return translator_ids
 
 
-def save_book(conn, title, pub_date, hours, minutes):
+def save_book(title, pub_date, hours, minutes):
     logger.debug(f"title: '{title}'")
     logger.debug(f"pub_date: '{pub_date}'")
     logger.debug(f"hours: {hours}")
     logger.debug(f"minutes: {minutes}")
     if pub_date == "":
         pub_date = None
-    book_id = db.book.save(conn, title, pub_date, hours, minutes)
+    book_id = db.book.save(title, pub_date, hours, minutes)
     logger.debug(f"book_id: {book_id}")
     return book_id
 
 
-def save_data(csv_file, db_file, transaction):
-    conn = sqlite3.connect(database=db_file, isolation_level=None)
-    db.db.enforce_foreign_key_constraints(conn)
-    conn.execute("BEGIN TRANSACTION")
+def save_data(csv_file, db_file, vendor, transaction):
+    db.connect(db_file=db_file)
+    db.enforce_foreign_key_constraints()
+    db.begin_transaction()
     try:
         # Create tables.
-        db.db.create_tables(conn)
+        db.create_tables()
+
+        # Save the vendor in the database.
+        vendor_id = db.vendor.save(vendor)
 
         with open(csv_file, "r") as csv_file:
             csv_reader = csv.reader(csv_file)
@@ -187,65 +200,71 @@ def save_data(csv_file, db_file, transaction):
                 # Insert one or more new authors into tbl_author.
                 csv_authors = csv_row[1]
                 logger.debug(f"csv_authors: '{csv_authors}'")
-                author_ids = save_authors(conn, csv_authors)
+                author_ids = save_authors(db.conn.conn, csv_authors)
 
                 # Insert one or more new translators into tbl_translator.
                 csv_translators = csv_row[2]
                 logger.debug(f"csv_translators: '{csv_translators}'")
-                translator_ids = save_translators(conn, csv_translators)
+                translator_ids = save_translators(db.conn.conn, csv_translators)
 
                 # Insert one or more new narrators into tbl_narrator.
                 csv_narrators = csv_row[3]
                 logger.debug(f"csv_narrators: '{csv_narrators}'")
-                narrator_ids = save_narrators(conn, csv_narrators)
+                narrator_ids = save_narrators(db.conn.conn, csv_narrators)
 
-                # Insert title into tbl_book.
+                # Insert book attributes into tbl_book.
                 csv_title = csv_row[0]
                 csv_pub_date = csv_row[4]
                 csv_hours = csv_row[5]
                 csv_minutes = csv_row[6]
                 logger.debug(f"csv_title: '{csv_title}'")
                 logger.debug(f"csv_pub_date: '{csv_pub_date}'")
-                logger.debug(f"hours: '{csv_hours}'")
-                logger.debug(f"minutes: '{csv_minutes}'")
-                book_id = save_book(conn, csv_title, csv_pub_date, csv_hours, csv_minutes)
+                logger.debug(f"hours: {csv_hours}")
+                logger.debug(f"minutes: {csv_minutes}")
+                book_id = save_book(csv_title, csv_pub_date, csv_hours, csv_minutes)
 
                 # Insert book ID and associated author IDs into tbl_book_author.
                 for author_id in author_ids:
-                    db.db.save_book_author(conn, book_id, author_id)
+                    db.db.save_book_author(db.conn.conn, book_id, author_id)
                 
                 # Insert book and associated translators into tbl_book_translators.
                 for translator_id in translator_ids:
-                    db.db.save_book_translator(conn, book_id, translator_id)
+                    db.db.save_book_translator(db.conn.conn, book_id, translator_id)
                 
                 # Insert book and associated narrators into tbl_book_narrators.
                 for narrator_id in narrator_ids:
-                    db.db.save_book_narrator(conn, book_id, narrator_id)
+                    db.db.save_book_narrator(db.conn.conn, book_id, narrator_id)
+                
+                # Insert book and associated vendor into tbl_book_vendor.
+                db.db.save_book_vendor(db.conn.conn, book_id, vendor_id)
+                db.db.save_book_vendor(db.conn.conn, book_id, vendor_id)
 
         # Commit or roll back database changes. If the rollback is successful,
         # the size of the database file will be 0 bytes.
         if transaction == "commit":
             print(f"Requested transaction is {transaction}: Committing changes...")
-            conn.execute("COMMIT")
+            db.commit()
             print("  Done.")
         else:
             print(f"Requested transaction is {transaction}: Rolling back changes...")
-            conn.execute("ROLLBACK")
+            db.rollback()
             print("  Done.")
 
     except Exception as exc:
         # Roll back changes if any exception occurred.
         print("Caught an exception. Rolling back changes...")
-        conn.execute("ROLLBACK")
+        db.rollback()
         print("  Done.")
-        print(f"The exception was {exc}.")
+        print(f"The exception was '{exc}'.")
+        traceback.print_exc(file=sys.stdout)
+
     
-    conn.close()
+    db.close()
 
 def main():
     args = parse_args()
     utils.init_logging(args.log_file, args.log_level)
-    save_data(args.csv_file, args.db_file, args.transaction)
+    save_data(args.csv_file, args.db_file, args.vendor, args.transaction)
 
 if __name__ == "__main__":
     main()

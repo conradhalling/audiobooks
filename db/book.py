@@ -3,11 +3,11 @@ Database interactions with tbl_book.
 """
 
 import logging
-
 logger = logging.getLogger(__name__)
 
+from . import conn
 
-def create_table(conn):
+def create_table():
     """
     Create tbl_book.
     """
@@ -22,10 +22,10 @@ def create_table(conn):
             hours INTEGER NOT NULL,
             minutes INTEGER NOT NULL
         )"""
-    conn.execute(sql_create_table)
+    conn.conn.execute(sql_create_table)
 
 
-def insert(conn, title, pub_date, hours, minutes):
+def insert(title, pub_date, hours, minutes):
     """
     Insert the book and return the new book_id.
     Raises an exception if the book is already in the database.
@@ -41,13 +41,13 @@ def insert(conn, title, pub_date, hours, minutes):
         )
         VALUES (?, ?, ?, ?)
     """
-    cur = conn.execute(sql_insert, (title, pub_date, hours, minutes))
+    cur = conn.conn.execute(sql_insert, (title, pub_date, hours, minutes))
     book_id = cur.lastrowid
     logger.debug(f"New book_id: {book_id}")
     return book_id
 
 
-def save(conn, title, pub_date, hours, minutes):
+def save(title, pub_date, hours, minutes):
     """
     If the book exists, select the existing book_id.
     Otherwise, insert the book and get the new book_id.
@@ -57,14 +57,14 @@ def save(conn, title, pub_date, hours, minutes):
     logger.debug(f"pub_date: {pub_date}")
     logger.debug(f"hours: {hours}")
     logger.debug(f"minutes: {minutes}")
-    book_id = select_id(conn, title)
+    book_id = select_id(title)
     if book_id is None:
-        book_id = insert(conn, title, pub_date, hours, minutes)
+        book_id = insert(title, pub_date, hours, minutes)
     logger.debug(f"book_id for title {title}: {book_id}")
     return book_id
 
 
-def select_id(conn, title):
+def select_id(title):
     """
     Select and return the ID for the book.
     Return None if the book is not in the database.
@@ -78,7 +78,7 @@ def select_id(conn, title):
         WHERE
             tbl_book.title = ?
     """
-    cur = conn.execute(sql_select_id, (title,))
+    cur = conn.conn.execute(sql_select_id, (title,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for title '{title}': {db_row}")
     book_id = None

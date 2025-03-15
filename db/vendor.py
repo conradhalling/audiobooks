@@ -3,11 +3,12 @@ Database interactions with tbl_vendor.
 """
 
 import logging
-
 logger = logging.getLogger(__name__)
 
+from . import conn
 
-def create_table(conn):
+
+def create_table():
     logger.debug("Creating tbl_vendor...")
     sql_create_table = """
         CREATE TABLE IF NOT EXISTS
@@ -17,13 +18,10 @@ def create_table(conn):
             name TEXT NOT NULL
         )
     """
-    conn.execute(sql_create_table)
-    vendors = ["audible.com", "cloudLibrary"]
-    for vendor in vendors:
-        save(conn, vendor)
+    conn.conn.execute(sql_create_table)
 
 
-def insert(conn, vendor):
+def insert(vendor):
     logger.debug(f"vendor: '{vendor}'")
     sql_insert = """
         INSERT INTO tbl_vendor
@@ -32,27 +30,27 @@ def insert(conn, vendor):
         )
         VALUES (?)
     """
-    cur = conn.execute(sql_insert, (vendor,))
+    cur = conn.conn.execute(sql_insert, (vendor,))
     vendor_id = cur.lastrowid
     logger.debug(f"New vendor_id: {vendor_id}")
     return vendor_id
 
 
-def save(conn, vendor):
+def save(vendor):
     """
     If the vendor exists, select the existing vendor_id.
     Otherwise, insert the vendor and get the new vendor_id.
     Return the vendor_id.
     """
     logger.debug(f"vendor: '{vendor}'")
-    vendor_id = select_id(conn, vendor)
+    vendor_id = select_id(vendor)
     if vendor_id is None:
-        vendor_id = insert(conn, vendor)
+        vendor_id = insert(vendor)
     logger.debug(f"vendor_id for vendor '{vendor}': {vendor_id}")
     return vendor_id
 
 
-def select_id(conn, vendor):
+def select_id(vendor):
     logger.debug(f"vendor: '{vendor}'")
     sql_select_id = """
         SELECT
@@ -62,7 +60,7 @@ def select_id(conn, vendor):
         WHERE
             tbl_vendor.name = ?
     """
-    cur = conn.execute(sql_select_id, (vendor,))
+    cur = conn.conn.execute(sql_select_id, (vendor,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for vendor '{vendor}': {db_row}")
     vendor_id = None
