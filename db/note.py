@@ -38,7 +38,7 @@ def insert(book_id, reread, status, finish_date, rating_id, comments):
     """
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"reread: '{reread}'")
-    logger.debug(f"status: {status}")
+    logger.debug(f"status: '{status}'")
     logger.debug(f"finish_date: '{finish_date}'")
     logger.debug(f"rating_id: {rating_id}")
     logger.debug(f"comments: '{comments}'")
@@ -68,7 +68,7 @@ def save(book_id, reread, status, finish_date, rating_id, comments):
     """
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"reread: '{reread}'")
-    logger.debug(f"status: {status}")
+    logger.debug(f"status: '{status}'")
     logger.debug(f"finish_date: '{finish_date}'")
     logger.debug(f"rating_id: {rating_id}")
     logger.debug(f"comments: '{comments}'")
@@ -88,24 +88,40 @@ def select_id(book_id, reread, status, finish_date, rating_id, comments):
     """
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"reread: '{reread}'")
-    logger.debug(f"status: {status}")
+    logger.debug(f"status: '{status}'")
     logger.debug(f"finish_date: '{finish_date}'")
     logger.debug(f"rating_id: {rating_id}")
     logger.debug(f"comments: '{comments}'")
-    sql_select_id = """
+    # Build the query string to allow for NULL values.
+    # This is inconvenient but was necessary for the query to work correctly.
+    sql_select_id = f"""
         SELECT
             tbl_note.id
         FROM
             tbl_note
         WHERE
             tbl_note.book_id = ?
-            AND tbl_note.reread = ?
-            AND tbl_note.status = ?
-            AND tbl_note.finish_date = ?
-            AND tbl_note.rating_id = ?
-            AND tbl_note.comments = ?
+            AND tbl_note.reread {'IS NULL' if reread is None else '= ?'}
+            AND tbl_note.status {'IS NULL' if status is None else '= ?'}
+            AND tbl_note.finish_date {'IS NULL' if finish_date is None else '= ?'}
+            AND tbl_note.rating_id {'IS NULL' if rating_id is None else '= ?'}
+            AND tbl_note.comments {'IS NULL' if comments is None else '= ?'}
     """
-    cur = conn.conn.execute(sql_select_id, (book_id, reread, status, finish_date, rating_id, comments,))
+    logger.debug(sql_select_id)
+    values = []
+    if book_id is not None:
+        values.append(book_id)
+    if reread is not None:
+        values.append(reread)
+    if status is not None:
+        values.append(status)
+    if finish_date is not None:
+        values.append(finish_date)
+    if rating_id is not None:
+        values.append(rating_id)
+    if comments is not None:
+        values.append(comments)
+    cur = conn.conn.execute(sql_select_id, values)
     db_row = cur.fetchone()
     logger.debug(f"Returned row {db_row}")
     note_id = None
