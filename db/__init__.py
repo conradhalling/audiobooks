@@ -14,8 +14,11 @@ import sqlite3
 from . import acquisition_type
 from . import author
 from . import book
+from . import book_acquisition
+from . import book_author
+from . import book_narrator
+from . import book_translator
 from . import conn
-from . import db
 from . import narrator
 from . import rating
 from . import translator
@@ -39,20 +42,21 @@ def commit():
 
 def connect(db_file):
     conn.conn = sqlite3.connect(database=db_file, isolation_level=None)
+    enforce_foreign_key_constraints()
 
 
-def create_tables():
+def create_schema():
     author.create_table()
     narrator.create_table()
     translator.create_table()
     vendor.create_table()
     book.create_table()
-    db.create_tbl_book_author(conn.conn)
-    db.create_tbl_book_narrator(conn.conn)
-    db.create_tbl_book_translator(conn.conn)
-    db.create_tbl_book_vendor(conn.conn)
     acquisition_type.create_table()
     rating.create_table()
+    book_author.create_table()
+    book_narrator.create_table()
+    book_translator.create_table()
+    book_acquisition.create_table()
 
 
 def enforce_foreign_key_constraints():

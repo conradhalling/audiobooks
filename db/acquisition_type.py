@@ -50,9 +50,9 @@ def save(acquisition_type):
     """
     logger.debug(f"acquisition_type: '{acquisition_type}'")
     acquisition_type_id = select_id(acquisition_type)
-    if acquisition_type is None:
+    if acquisition_type_id is None:
         acquisition_type_id = insert(acquisition_type)
-    logger.debug(f"acquisition_type_id for acquisition_type {acquisition_type}: {acquisition_type_id}")
+    logger.debug(f"acquisition_type_id for acquisition_type '{acquisition_type}': {acquisition_type_id}")
     return acquisition_type_id
 
 
