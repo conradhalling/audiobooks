@@ -52,7 +52,10 @@ def load_csv_data(csv_file, vendor):
                 csv_acquisition_type,
                 csv_audible_credits,
                 csv_price,
-                *csv_others,
+                csv_rating,
+                csv_discontinued,
+                csv_reread,
+                csv_comments,
             ) = csv_row
             logger.debug(f"csv_authors: '{csv_authors}'")
             author_ids = save_authors(csv_authors)
@@ -67,7 +70,8 @@ def load_csv_data(csv_file, vendor):
             logger.debug(f"csv_pub_date: '{csv_pub_date}'")
             logger.debug(f"hours: {csv_hours}")
             logger.debug(f"minutes: {csv_minutes}")
-            book_id = save_book(csv_title, csv_pub_date, csv_hours, csv_minutes)
+            audio_pub_date = ""
+            book_id = save_book(csv_title, csv_pub_date, audio_pub_date, csv_hours, csv_minutes, csv_discontinued)
 
             for author_id in author_ids:
                 db.book_author.save(book_id, author_id)
@@ -78,14 +82,24 @@ def load_csv_data(csv_file, vendor):
             for narrator_id in narrator_ids:
                 db.book_narrator.save(book_id, narrator_id)
             
-            save_book_acquisition(
+            book_acquisiton_id = save_book_acquisition(
                 book_id, 
                 vendor_id, 
                 vendor, 
                 csv_acquisition_type, 
                 csv_acquisition_date, 
                 csv_audible_credits, 
-                csv_price)
+                csv_price,
+            )
+            
+            note_id = save_note(
+                book_id,
+                csv_reread,
+                csv_status,
+                csv_finished_date,
+                csv_rating,
+                csv_comments,
+            )
 
 
 def save_authors(authors_str):
@@ -107,14 +121,19 @@ def save_authors(authors_str):
     return author_ids
 
 
-def save_book(title, pub_date, hours, minutes):
+def save_book(title, book_pub_date, audio_pub_date, hours, minutes, discontinued):
     logger.debug(f"title: '{title}'")
-    logger.debug(f"pub_date: '{pub_date}'")
+    logger.debug(f"book_pub_date: '{book_pub_date}'")
+    logger.debug(f"audio_pub_date: '{audio_pub_date}'")
     logger.debug(f"hours: {hours}")
     logger.debug(f"minutes: {minutes}")
-    if pub_date == "":
-        pub_date = None
-    book_id = db.book.save(title, pub_date, hours, minutes)
+    if book_pub_date == "":
+        book_pub_date = None
+    if audio_pub_date == "":
+        audio_pub_date = None
+    if discontinued == "":
+        discontinued = None
+    book_id = db.book.save(title, book_pub_date, audio_pub_date, hours, minutes, discontinued)
     logger.debug(f"book_id: {book_id}")
     return book_id
 
@@ -176,6 +195,38 @@ def save_narrators(narrators_str):
             narrator_ids.append(narrator_id)
     logger.debug(f"narrator ids: {narrator_ids}")
     return narrator_ids
+
+
+def save_note(book_id, csv_reread, csv_status, csv_finished_date, csv_rating, csv_comments):
+    logger.debug(f"book_id: {book_id}")
+    logger.debug(f"reread: '{csv_reread}'")
+    logger.debug(f"csv_status: '{csv_status}'")
+    logger.debug(f"csv_finished_date: '{csv_finished_date}'")
+    logger.debug(f"csv_rating: {csv_rating}")
+    logger.debug(f"csv_comments: '{csv_comments}'")
+
+    reread = None
+    if csv_reread != "":
+        reread = csv_reread
+
+    status = None
+    if csv_status != "":
+        status = csv_status
+
+    finished_date = None
+    if csv_finished_date != "":
+        finished_date = csv_finished_date
+
+    rating_id = None
+    if csv_rating != "":
+        rating_id = db.rating.select_id_by_stars(csv_rating)
+
+    comments = None
+    if csv_comments != "":
+        comments = csv_comments
+
+    note_id = db.note.save(book_id, reread, status, finished_date, rating_id, comments)
+    return note_id
 
 
 def save_translators(translators_str):

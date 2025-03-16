@@ -20,6 +20,7 @@ from . import book_narrator
 from . import book_translator
 from . import conn
 from . import narrator
+from . import note
 from . import rating
 from . import translator
 from . import vendor
@@ -51,6 +52,7 @@ def create_schema():
     translator.create_table()
     vendor.create_table()
     book.create_table()
+    note.create_table()
     acquisition_type.create_table()
     rating.create_table()
     book_author.create_table()

@@ -90,3 +90,26 @@ def select_id(stars, description):
     if db_row is not None:
         rating_id = db_row[0]
     return rating_id
+
+
+def select_id_by_stars(stars):
+    """
+    Select and return the ID for the rating.
+    Return None if the rating is not in the database.
+    """
+    logger.debug(f"stars: {stars}")
+    sql_select_id = """
+        SELECT
+            tbl_rating.id
+        FROM
+            tbl_rating
+        WHERE
+            tbl_rating.stars = ?
+    """
+    cur = conn.conn.execute(sql_select_id, (stars,))
+    db_row = cur.fetchone()
+    logger.debug(f"Returned row for stars {stars}': {db_row}")
+    rating_id = None
+    if db_row is not None:
+        rating_id = db_row[0]
+    return rating_id

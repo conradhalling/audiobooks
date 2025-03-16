@@ -32,13 +32,12 @@ def insert(book_id, narrator_id):
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"narrator_id: {narrator_id}")
     sql_insert = """
-        INSERT INTO
-            tbl_book_narrator
-            (
-                book_id,
-                narrator_id
-            )
-            VALUES (?, ?)
+        INSERT INTO tbl_book_narrator
+        (
+            book_id,
+            narrator_id
+        )
+        VALUES (?, ?)
     """
     cur = conn.conn.execute(sql_insert, (book_id, narrator_id,))
     book_narrator_id = cur.lastrowid
@@ -66,6 +65,8 @@ def select_id(book_id, narrator_id):
     Select and return the ID for the book narrator.
     Return None if the book narrator is not in the database.
     """
+    logger.debug(f"book_id: {book_id}")
+    logger.debug(f"narratorid: {narrator_id}")
     sql_select_id = """
         SELECT
             tbl_book_narrator.id
