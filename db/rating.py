@@ -20,7 +20,7 @@ def create_table():
             id INTEGER PRIMARY KEY,
             stars INTEGER NOT NULL UNIQUE,
             description TEXT NOT NULL UNIQUE
-        )
+        ) strict
     """
     conn.conn.execute(sql_create_table)
     ratings = [

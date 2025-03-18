@@ -23,7 +23,8 @@ def create_table():
             hours INTEGER NOT NULL,
             minutes INTEGER NOT NULL,
             discontinued TEXT
-        )"""
+        ) strict
+    """
     conn.conn.execute(sql_create_table)
 
 

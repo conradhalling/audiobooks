@@ -29,10 +29,10 @@ import sys
 import textwrap
 import traceback
 
-import csv_processor    # csv_processor.load_csv_data loads CSV data into
-                        # the database
-import db.conn          # db.conn.conn contains the sqlite3.Connection object.
-import utils            # utils.init_logging initializes the logger.
+import audible_processor    # audible_processor.load_csv_data loads CSV data into
+                            # the database
+import db.conn              # db.conn.conn contains the sqlite3.Connection object.
+import utils                # utils.init_logging initializes the logger.
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,6 @@ def parse_args():
             --username      halto \
             --csv_file      data/audible.csv \
             --db_file       data/audiobooks.sqlite3 \
-            --vendor        audible.com \
             --log_file      logs/create_db.log \
             --log_level     debug \
             --transaction   commit""")
@@ -65,12 +64,6 @@ def parse_args():
     parser.add_argument(
         "--db_file",
         help="sqlite3 database file",
-        required=True,
-    )
-    parser.add_argument(
-        "--vendor",
-        choices=["audible.com", "cloudLibrary"],
-        help="audiobook vendor",
         required=True,
     )
     parser.add_argument(
@@ -95,13 +88,14 @@ def parse_args():
 
 
 def main():
+    vendor = "audible.com"
     args = parse_args()
     utils.init_logging(args.log_file, args.log_level)
     db.connect(db_file=args.db_file)
     db.begin_transaction()
     try:
         db.create_schema()
-        csv_processor.load_csv_data(args.username, args.csv_file, args.vendor)
+        audible_processor.load_csv_data(args.username, args.csv_file, vendor)
         # Commit or roll back database changes. If the rollback is successful,
         # the size of the database file will be 0 bytes.
         if args.transaction == "commit":

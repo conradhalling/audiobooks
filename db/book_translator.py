@@ -21,7 +21,7 @@ def create_table():
             translator_id INTEGER NOT NULL,
             FOREIGN KEY (book_id) REFERENCES tbl_book(id),
             FOREIGN KEY (translator_id) REFERENCES tbl_translator(id)
-        )
+        ) strict
     """
     conn.conn.execute(sql_create_table)
 

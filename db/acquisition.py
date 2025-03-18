@@ -29,7 +29,7 @@ def create_table():
             FOREIGN KEY (vendor_id) REFERENCES tbl_vendor(id),
             FOREIGN KEY (acquisition_type_id) REFERENCES tbl_acquisition_type(id),
             UNIQUE (user_id, book_id, vendor_id)
-        )
+        ) strict
     """
     conn.conn.execute(sql_create_table)
 
