@@ -91,8 +91,8 @@ def main():
     db.begin_transaction()
     try:
         ph = argon2.PasswordHasher()
-        hash = ph.hash(args.password)
-        user_id = db.user.insert(args.username, args.email, hash)
+        password_hash = ph.hash(args.password)
+        user_id = db.user.insert(args.username, args.email, password_hash)
         # Commit or roll back database changes. If the rollback is successful,
         # the size of the database file will be 0 bytes.
         if args.transaction == "commit":

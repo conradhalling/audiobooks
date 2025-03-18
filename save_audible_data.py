@@ -5,7 +5,6 @@ The script will not load the data more than once.
 EXAMPLE
     python3 save_audible_data.py \
         --user          username \
-        --password      "correct horse battery staple" \
         --csv_file      data/audible.csv \
         --db_file       data/audiobooks.sqlite3 \
         --vendor        audible.com \
@@ -16,6 +15,7 @@ EXAMPLE
 
 
 import argparse
+import getpass
 import logging
 import os
 import sys
@@ -37,7 +37,7 @@ def parse_args():
         epilog=textwrap.dedent(rf"""
         Example:
           python3 {os.path.basename(__file__)} \
-            --username      halto \
+            --username      username \
             --csv_file      data/audible.csv \
             --db_file       data/audiobooks.sqlite3 \
             --log_file      logs/create_db.log \
@@ -49,11 +49,11 @@ def parse_args():
         help="username for data being loaded",
         required=True,
     )
-    parser.add_argument(
-        "--password",
-        help="username's password",
-        required=True,
-    )
+    # parser.add_argument(
+    #     "--password",
+    #     help="username's password",
+    #     required=True,
+    # )
     parser.add_argument(
         "--csv_file",
         help="input CSV file",
@@ -90,7 +90,8 @@ def main():
     utils.init_logging(args.log_file, args.log_level)
     db.connect(db_file=args.db_file)
     # Raise an exception if username or password is not verified.
-    db.user.verify_username_password(args.username, args.password)
+    password = getpass.getpass()
+    db.user.verify_username_password(args.username, password)
 
     # Process the data using a database transaction.
     db.begin_transaction()
