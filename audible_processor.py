@@ -26,15 +26,12 @@ def convert_price(csv_price):
     return price
 
 
-def load_csv_data(username, csv_file, vendor):
+def save_audible_data(username, csv_file):
     """
     Given the CSV data file for the given vendor, parse the data fields
     and load the data into the database.
     """
-    if username == 'halto':
-        user_id = db.user.insert('halto', 'xxxxxxxxxx@icloud.com', 'xxxxxxxx')
-    elif username == 'celyn':
-        user_id = db.user.insert('celyn', 'yyyyyyyyyy@gmail.com', 'yyyyyyyy')
+    vendor = "audible.com"
 
     user_id = db.user.select_user_id(username)
     if user_id is None:

@@ -1,9 +1,14 @@
 r"""
-Create the database tables.
+Read the audible.csv data file and save the data in the SQLite3 database.
+The script will not load the data more than once.
 
 EXAMPLE
-    python3 create_db.py \
+    python3 save_audible_data.py \
+        --user          username \
+        --password      "correct horse battery staple" \
+        --csv_file      data/audible.csv \
         --db_file       data/audiobooks.sqlite3 \
+        --vendor        audible.com \
         --log_file      logs/create_db.log \
         --log_level     debug \
         --transaction   commit
@@ -17,6 +22,8 @@ import sys
 import textwrap
 import traceback
 
+import audible_processor    # audible_processor.load_csv_data loads CSV data into
+                            # the database
 import db.conn              # db.conn.conn contains the sqlite3.Connection object.
 import utils                # utils.init_logging initializes the logger.
 
@@ -26,14 +33,31 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="Create the audiobooks SQLite3 database",
+        description="Save audible.com audiobooks data to the SQLite3 database",
         epilog=textwrap.dedent(rf"""
         Example:
           python3 {os.path.basename(__file__)} \
+            --username      halto \
+            --csv_file      data/audible.csv \
             --db_file       data/audiobooks.sqlite3 \
             --log_file      logs/create_db.log \
             --log_level     debug \
             --transaction   commit""")
+    )
+    parser.add_argument(
+        "--username",
+        help="username for data being loaded",
+        required=True,
+    )
+    parser.add_argument(
+        "--password",
+        help="username's password",
+        required=True,
+    )
+    parser.add_argument(
+        "--csv_file",
+        help="input CSV file",
+        required=True,
     )
     parser.add_argument(
         "--db_file",
@@ -65,9 +89,13 @@ def main():
     args = parse_args()
     utils.init_logging(args.log_file, args.log_level)
     db.connect(db_file=args.db_file)
+    # Raise an exception if username or password is not verified.
+    db.user.verify_username_password(args.username, args.password)
+
+    # Process the data using a database transaction.
     db.begin_transaction()
     try:
-        db.create_schema()
+        audible_processor.save_audible_data(args.username, args.csv_file)
         # Commit or roll back database changes. If the rollback is successful,
         # the size of the database file will be 0 bytes.
         if args.transaction == "commit":
