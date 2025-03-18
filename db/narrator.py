@@ -53,7 +53,7 @@ def save(narrator):
     narrator_id = select_id(narrator)
     if narrator_id is None:
         narrator_id = insert(narrator)
-    logger.debug(f"narrator_id for narrator {narrator}: {narrator_id}")
+    logger.debug(f"narrator_id for narrator '{narrator}': {narrator_id}")
     return narrator_id
 
 

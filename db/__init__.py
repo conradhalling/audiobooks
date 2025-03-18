@@ -11,10 +11,10 @@ import logging
 logger = logging.getLogger(__name__)
 import sqlite3
 
+from . import acquisition
 from . import acquisition_type
 from . import author
 from . import book
-from . import book_acquisition
 from . import book_author
 from . import book_narrator
 from . import book_translator
@@ -22,6 +22,7 @@ from . import conn
 from . import narrator
 from . import note
 from . import rating
+from . import status
 from . import translator
 from . import user
 from . import vendor
@@ -54,13 +55,14 @@ def create_schema():
     translator.create_table()
     vendor.create_table()
     book.create_table()
+    status.create_table()
     note.create_table()
     acquisition_type.create_table()
     rating.create_table()
     book_author.create_table()
     book_narrator.create_table()
     book_translator.create_table()
-    book_acquisition.create_table()
+    acquisition.create_table()
 
 
 def enforce_foreign_key_constraints():

@@ -31,6 +31,11 @@ def load_csv_data(username, csv_file, vendor):
     Given the CSV data file for the given vendor, parse the data fields
     and load the data into the database.
     """
+    if username == 'halto':
+        user_id = db.user.insert('halto', 'xxxxxxxxxx@icloud.com', 'xxxxxxxx')
+    elif username == 'celyn':
+        user_id = db.user.insert('celyn', 'yyyyyyyyyy@gmail.com', 'yyyyyyyy')
+
     user_id = db.user.select_user_id(username)
     if user_id is None:
         raise ValueError(f"Invalid username {username}")
@@ -181,7 +186,7 @@ def save_book_acquisition(
     
     price = convert_price(csv_price)
 
-    db.book_acquisition.save(
+    db.acquisition.save(
         user_id, book_id, vendor_id, acquisition_type_id, csv_acquisition_date,
         audible_credits, price)
 
@@ -219,9 +224,9 @@ def save_note(user_id, book_id, csv_reread, csv_status, csv_finished_date,
     if csv_reread != "":
         reread = csv_reread
 
-    status = None
+    status_id = None
     if csv_status != "":
-        status = csv_status
+        status_id = db.status.save(csv_status)
 
     finished_date = None
     if csv_finished_date != "":
@@ -235,7 +240,7 @@ def save_note(user_id, book_id, csv_reread, csv_status, csv_finished_date,
     if csv_comments != "":
         comments = csv_comments
 
-    note_id = db.note.save(user_id, book_id, reread, status, finished_date,
+    note_id = db.note.save(user_id, book_id, reread, status_id, finished_date,
                         rating_id, comments)
     return note_id
 

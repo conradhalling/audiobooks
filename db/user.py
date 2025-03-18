@@ -24,7 +24,6 @@ def create_table():
         )
     """
     conn.conn.execute(sql_create_table)
-    insert('halto', 'conrad.halling@icloud.com', 'xxxxxxxxxx')
 
 
 def insert(username, email, password_hash):
