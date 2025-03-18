@@ -23,6 +23,7 @@ from . import narrator
 from . import note
 from . import rating
 from . import translator
+from . import user
 from . import vendor
 
 
@@ -47,6 +48,7 @@ def connect(db_file):
 
 
 def create_schema():
+    user.create_table()
     author.create_table()
     narrator.create_table()
     translator.create_table()

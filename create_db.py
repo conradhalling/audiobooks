@@ -4,6 +4,7 @@ The script will not load the data more than once.
 
 EXAMPLE
     python3 create_db.py \
+        --user          halto \
         --csv_file      data/audible.csv \
         --db_file       data/audiobooks.sqlite3 \
         --vendor        audible.com \
@@ -18,28 +19,10 @@ TESTS
     -   Loading the data twice does not cause duplicated data.
     -   Calling db.test_foreign_key_enforcement() raises a
         sqlite3.IntegrityError exception.
-
-TO DO
-    -   tbl_event_type
-            id
-            event_type TEXT NOT NULL
-            1   'started'
-            2   'finished'
-    -   tbl_event
-            id INTEGER PRIMARY KEY
-            book_id INTEGER NOT NULL
-            event_type_id INTEGER NOT NULL
-            date TEXT NOT NULL
-    -   tbl_book_rating
-            id INTEGER PRIMARY KEY
-            book_id INTEGER NOT NULL (fk)
-            rating_id INTEGER NOT NULL (fk)
-            notes TEXT
 """
 
 
 import argparse
-import csv
 import logging
 import os
 import sys
@@ -61,12 +44,18 @@ def parse_args():
         epilog=textwrap.dedent(rf"""
         Example:
           python3 {os.path.basename(__file__)} \
+            --username      halto \
             --csv_file      data/audible.csv \
             --db_file       data/audiobooks.sqlite3 \
             --vendor        audible.com \
             --log_file      logs/create_db.log \
             --log_level     debug \
             --transaction   commit""")
+    )
+    parser.add_argument(
+        "--username",
+        help="username for data being loaded",
+        required=True,
     )
     parser.add_argument(
         "--csv_file",
@@ -112,7 +101,7 @@ def main():
     db.begin_transaction()
     try:
         db.create_schema()
-        csv_processor.load_csv_data(args.csv_file, args.vendor)
+        csv_processor.load_csv_data(args.username, args.csv_file, args.vendor)
         # Commit or roll back database changes. If the rollback is successful,
         # the size of the database file will be 0 bytes.
         if args.transaction == "commit":

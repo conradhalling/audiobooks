@@ -19,12 +19,14 @@ def create_table():
         CREATE TABLE IF NOT EXISTS
         tbl_note (
             id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
             book_id INTEGER NOT NULL,
             reread TEXT,
             status TEXT,
             finish_date TEXT,
             rating_id INTEGER,
             comments TEXT,
+            FOREIGN KEY (user_id) REFERENCES tbl_user(id),
             FOREIGN KEY (book_id) REFERENCES tbl_book(id),
             FOREIGN KEY (rating_id) REFERENCES tbl_rating(id)
         )
@@ -32,10 +34,11 @@ def create_table():
     conn.conn.execute(sql_create_table)
 
 
-def insert(book_id, reread, status, finish_date, rating_id, comments):
+def insert(user_id, book_id, reread, status, finish_date, rating_id, comments):
     """
     Insert the note and return the new note_id.
     """
+    logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"reread: '{reread}'")
     logger.debug(f"status: '{status}'")
@@ -45,6 +48,7 @@ def insert(book_id, reread, status, finish_date, rating_id, comments):
     sql_insert = """
         INSERT INTO tbl_note
         (
+            user_id,
             book_id,
             reread,
             status,
@@ -52,40 +56,44 @@ def insert(book_id, reread, status, finish_date, rating_id, comments):
             rating_id,
             comments
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """
-    cur = conn.conn.execute(sql_insert, (book_id, reread, status, finish_date, rating_id, comments))
+    cur = conn.conn.execute(
+        sql_insert,
+        (user_id, book_id, reread, status, finish_date, rating_id, comments))
     note_id = cur.lastrowid
     logger.debug(f"New note_id: {note_id}")
     return note_id
 
 
-def save(book_id, reread, status, finish_date, rating_id, comments):
+def save(user_id, book_id, reread, status, finish_date, rating_id, comments):
     """
     If the note exists, select the existing note_id.
     Otherwise, insert the note and get the new note_id.
     Return the note_id.
     """
+    logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"reread: '{reread}'")
     logger.debug(f"status: '{status}'")
     logger.debug(f"finish_date: '{finish_date}'")
     logger.debug(f"rating_id: {rating_id}")
     logger.debug(f"comments: '{comments}'")
-    note_id = select_id(book_id, reread, status, finish_date, rating_id, comments)
+    note_id = select_id(user_id, book_id, reread, status, finish_date, rating_id, comments)
     if note_id is None:
-        note_id = insert(book_id, reread, status, finish_date, rating_id, comments)
+        note_id = insert(user_id, book_id, reread, status, finish_date, rating_id, comments)
     logger.debug(f"note_id: {note_id}")
     return note_id
 
 
-def select_id(book_id, reread, status, finish_date, rating_id, comments):
+def select_id(user_id, book_id, reread, status, finish_date, rating_id, comments):
     """
     Select and return the ID for the note.
     Return None if the note is not in the database.
     This is to prevent inserting the same data into the database more than
     once.
     """
+    logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"reread: '{reread}'")
     logger.debug(f"status: '{status}'")
@@ -100,7 +108,8 @@ def select_id(book_id, reread, status, finish_date, rating_id, comments):
         FROM
             tbl_note
         WHERE
-            tbl_note.book_id = ?
+            tbl_note.user_id = ?
+            AND tbl_note.book_id = ?
             AND tbl_note.reread {'IS NULL' if reread is None else '= ?'}
             AND tbl_note.status {'IS NULL' if status is None else '= ?'}
             AND tbl_note.finish_date {'IS NULL' if finish_date is None else '= ?'}
@@ -109,6 +118,8 @@ def select_id(book_id, reread, status, finish_date, rating_id, comments):
     """
     logger.debug(sql_select_id)
     values = []
+    if user_id is not None:
+        values.append(user_id)
     if book_id is not None:
         values.append(book_id)
     if reread is not None:
