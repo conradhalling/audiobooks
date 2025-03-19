@@ -35,7 +35,7 @@ def create_table():
 
 
 def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
-        audible_credits, price_in_cents):
+        audible_credits=None, price_in_cents=None):
     """
     Insert the acquisition and return the new acquisition_id.
     Raises an exception if the acquisition is already in the database.
@@ -79,7 +79,7 @@ def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
 
 
 def save(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
-        audible_credits, price_in_cents):
+        audible_credits=None, price_in_cents=None):
     """
     If the acquisition exists, select the existing book_acquisition_id.
     Otherwise, insert the book acquisition and get the new book_acquisition_id.

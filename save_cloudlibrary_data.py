@@ -5,7 +5,7 @@ The script will not load the data more than once.
 EXAMPLE
     python3 save_audible_data.py \
         --user          username \
-        --csv_file      data/audible.csv \
+        --csv_file      data/cloudlibrary.csv \
         --db_file       data/audiobooks.sqlite3 \
         --log_file      logs/create_db.log \
         --log_level     debug \
@@ -21,10 +21,11 @@ import sys
 import textwrap
 import traceback
 
-import audible_processor    # audible_processor.load_csv_data loads CSV data into
-                            # the database
-import db.conn              # db.conn.conn contains the sqlite3.Connection object.
-import utils                # utils.init_logging initializes the logger.
+import cloudlibrary_processor   # cloudlibrary_processor.save_data loads CSV
+                                # data into the database
+import db.conn                  # db.conn.conn contains the sqlite3.Connection
+                                # object
+import utils                    # utils.init_logging initializes the logger
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def parse_args():
         Example:
           python3 {os.path.basename(__file__)} \
             --username      username \
-            --csv_file      data/audible.csv \
+            --csv_file      data/cloudlibrary.csv \
             --db_file       data/audiobooks.sqlite3 \
             --log_file      logs/create_db.log \
             --log_level     debug \
@@ -90,7 +91,7 @@ def main():
     # Process the data using a database transaction.
     db.begin_transaction()
     try:
-        audible_processor.save_data(args.username, args.csv_file)
+        cloudlibrary_processor.save_data(args.username, args.csv_file)
         # Commit or roll back database changes. If the rollback is successful,
         # the size of the database file will be 0 bytes.
         if args.transaction == "commit":

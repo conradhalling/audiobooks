@@ -22,9 +22,6 @@ def create_table():
         ) strict
     """
     conn.conn.execute(sql_create_table)
-    acquisition_types = ['vendor credit', 'charge', 'no charge']
-    for acquisition_type in acquisition_types:
-        save(acquisition_type)
 
 
 def insert(acquisition_type):

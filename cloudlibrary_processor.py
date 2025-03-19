@@ -1,5 +1,5 @@
 """
-CSV file processing code for the audible.com data.
+CSV file processing code for the cloudLibrary data.
 """
 
 import csv
@@ -9,34 +9,16 @@ logger = logging.getLogger(__name__)
 import db
 
 
-def convert_price(csv_price):
-    """
-    Convert the CSV price by removing "$" and "." characters and expressing the
-    result in cents. For example, this converts "$8.95" to 895. If the CSV price
-    is empty, return None.
-    """
-    price = None
-    if csv_price != "":
-        temp_price = ""
-        for char in csv_price:
-            if char != "$" and char != ".":
-                temp_price += char
-        if temp_price != "":
-            price = int(temp_price)
-    return price
-
-
 def save_data(username, csv_file):
     """
     Given the CSV data file for the given vendor, parse the data fields
     and load the data into the database.
     """
-    vendor = "audible.com"
-
     user_id = db.user.select_user_id(username)
     if user_id is None:
         raise ValueError(f"Invalid username {username}")
     
+    vendor = "cloudLibrary"
     vendor_id = db.vendor.save(vendor)
 
     with open(csv_file, "r") as csv_file:
@@ -47,22 +29,23 @@ def save_data(username, csv_file):
             (
                 csv_title,
                 csv_authors,
-                csv_translators,
-                csv_narrators,
-                csv_pub_date,
                 csv_hours,
                 csv_minutes,
+                csv_pub_date,
                 csv_acquisition_date,
                 csv_status,
                 csv_finished_date,
-                csv_acquisition_type,
-                csv_audible_credits,
-                csv_price,
                 csv_rating,
-                csv_discontinued,
-                csv_reread,
                 csv_comments,
             ) = csv_row
+
+            # Initialize values not included in the cloudLibrary CSV data.
+            csv_discontinued = ""
+            csv_reread = ""
+            csv_translators = ""
+            csv_narrators = ""
+            csv_acquisition_type = "library benefit"
+
             logger.debug(f"csv_authors: '{csv_authors}'")
             author_ids = save_authors(csv_authors)
 
@@ -91,13 +74,10 @@ def save_data(username, csv_file):
             
             book_acquisiton_id = save_book_acquisition(
                 user_id,
-                book_id, 
+                book_id,
                 vendor_id,
-                vendor,
                 csv_acquisition_type, 
                 csv_acquisition_date, 
-                csv_audible_credits, 
-                csv_price,
             )
             
             note_id = save_note(
@@ -151,40 +131,18 @@ def save_book_acquisition(
         user_id,
         book_id,
         vendor_id,
-        vendor, 
         csv_acquisition_type, 
-        csv_acquisition_date, 
-        csv_audible_credits, 
-        csv_price):
+        csv_acquisition_date):
     """
     Convert book acquisition attributes and save the book acquisition.
     """
     csv_acquisition_type = csv_acquisition_type.strip()
-    acquisition_types = {
-        "Credit": "vendor credit",
-        "Extra": "charge",
-        "Free": "no charge",
-        "Plus": "member benefit",
-        "Podcast": "podcast"
-    }
-    if csv_acquisition_type in acquisition_types:
-        acquisition_type = acquisition_types[csv_acquisition_type]
-    else:
-        raise ValueError(f"vendor '{vendor}' csv_acquisition_type '{csv_acquisition_type}' not handled")
+    acquisition_type = csv_acquisition_type
     acquisition_type_id = db.acquisition_type.save(acquisition_type)
-
     if csv_acquisition_date == "":
         raise ValueError("csv_acquistion_date must not be empty")
-    
-    audible_credits = None
-    if csv_audible_credits != "":
-        audible_credits = csv_audible_credits
-    
-    price = convert_price(csv_price)
-
     db.acquisition.save(
-        user_id, book_id, vendor_id, acquisition_type_id, csv_acquisition_date,
-        audible_credits, price)
+        user_id, book_id, vendor_id, acquisition_type_id, csv_acquisition_date)
 
 
 def save_narrators(narrators_str):
