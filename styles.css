@@ -5,6 +5,10 @@
   color: #000000;
 }
 
+body {
+  margin: 2em;
+}
+
 p {
   max-width: 40rem;
   font-size: larger;
@@ -41,7 +45,7 @@ th, td {
   padding: 2px 3px;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 15rem;
+  max-width: 20rem;
 }
 
 .right {
