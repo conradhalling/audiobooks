@@ -170,12 +170,11 @@ def create_books_table_html(conn, books_result_set):
     narrators. The easiest way to deal with this is to use multiple
     queries.
     """
-    html = '    <p>Click a table header to sort the table by that column.<p>\n'
     html += '    <table class="adaptive">\n'
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
     for col_name in ["Title", "Authors", "Translators", "Narrators", "Book Publication Date", "Audiobook Publication Date", "Length"]:
-        html += f'          <th class="adaptive">{col_name} <span></span></th>\n'
+        html += f'          <th class="adaptive">{col_name} <span>\u2195</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody class="adaptive">\n'
@@ -186,6 +185,7 @@ def create_books_table_html(conn, books_result_set):
         # Create keys for sorting by length or title.
         (hours, minutes) = length.split(":")
         data_length = 60 * int(hours) + int(minutes)
+
         if title.startswith("A "):
             data_title = title[2:]
         elif title.startswith("An "):
@@ -194,6 +194,7 @@ def create_books_table_html(conn, books_result_set):
             data_title = title[4:]
         else:
             data_title = title
+        data_title = data_title.upper()
         
         html += '        <tr class="adaptive">\n'
         html += f'          <td data-title="{data_title}" class="adaptive"><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
@@ -222,7 +223,7 @@ def create_finished_books_table_html(conn, books_result_set):
     in the table. A book can be finished more than once. The easiest way to deal
     with these is to use multiple queries.
     """
-    th_tool_tip = "Click this header to sort the column."
+    th_tool_tip = "Click this header to sort the table by the values in this column."
     html = '    <table class="adaptive">\n'
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
@@ -239,6 +240,9 @@ def create_finished_books_table_html(conn, books_result_set):
         # Create keys for sorting by length or title.
         (hours, minutes) = length.split(":")
         data_length = 60 * int(hours) + int(minutes)
+
+        # Create case-insensitive keys for sorting by title, ignoring "The", "A",
+        # and "An" at the beginning of the title.
         if title.startswith("A "):
             data_title = title[2:]
         elif title.startswith("An "):
@@ -247,7 +251,9 @@ def create_finished_books_table_html(conn, books_result_set):
             data_title = title[4:]
         else:
             data_title = title
+        data_title = data_title.upper()
 
+        # Select the acquisition date.
         acquisition_date = select_acquisition_date(conn, book_id)
 
         # Select the finished date and rating.
