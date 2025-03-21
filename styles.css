@@ -42,10 +42,15 @@ th, td {
   border: 1px solid #bfbfbf;
   font-family: Verdana;
   font-size: 0.625rem;
-  padding: 2px 3px;
+  padding: 2px 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 20rem;
+}
+
+th:hover {
+  cursor: pointer;
+  background-color: #bfbfbf;
 }
 
 .right {
@@ -77,6 +82,10 @@ th, td {
   th.adaptive,
   td.adaptive {
     border: 1px solid #404040;
+  }
+
+  th:hover {
+    background-color: #4d4d4d;
   }
 
   a.adaptive {

@@ -143,18 +143,23 @@ def select_finished_dates(conn, book_id):
 def create_authors_td_html(conn, book_id, rowspan_attr):
     """
     Given a book_id, select the authors and format them with links in a
-    td element.
+    td element. When there are multiple authors, use the first author as
+    the sort key.
     """
     data_rows = select_authors_for_book(conn, book_id)
     author_strings = []
-    author_last_name = ""
+    first_author = True
     for row in data_rows:
         (author_id, author_name) = row
-        if author_last_name == "":
-            author_last_name = author_name.split()[-1].upper()
+        if first_author:
+            # Create a sorting key that starts with the author's last name.
+            first_author_name_upper = author_name.upper()
+            first_author_names = first_author_name_upper.split()
+            first_author_names_key = " ".join([first_author_names[-1]] + first_author_names[:len(first_author_names) - 1])
+            first_author = False
         author_string = f'<a class="adaptive" href="?author_id={author_id}">{author_name}</a>'
         author_strings.append(author_string)
-    html = f'          <td data-author="{author_last_name}" class="adaptive"{rowspan_attr}>{", ".join(author_strings)}</td>\n'
+    html = f'          <td data-author="{first_author_names_key}" class="adaptive"{rowspan_attr}>{", ".join(author_strings)}</td>\n'
     return html
 
 
@@ -217,12 +222,12 @@ def create_finished_books_table_html(conn, books_result_set):
     in the table. A book can be finished more than once. The easiest way to deal
     with these is to use multiple queries.
     """
-    html = '    <p>Click a table header to sort the table by that column.<p>\n'
-    html += '    <table class="adaptive">\n'
+    th_tool_tip = "Click this header to sort the column."
+    html = '    <table class="adaptive">\n'
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
     for col_name in ["Title", "Authors", "Length", "Acquired Date", "Finished Date", "Rating"]:
-        html += f'          <th class="adaptive">{col_name} <span></span></th>\n'
+        html += f'          <th class="adaptive" title="{th_tool_tip}">{col_name} <span>\u2195</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody class="adaptive">\n'
@@ -273,7 +278,7 @@ def create_finished_books_table_html(conn, books_result_set):
             html += f'          <td data-title="{data_title}" class="adaptive"><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
             html += create_authors_td_html(conn, book_id, "")
             html += f'          <td data-length="{data_length}" class="adaptive right">{length}</td>\n'
-            html += f'          <td  class="adaptive">{acquisition_date}</td>\n'
+            html += f'          <td class="adaptive">{acquisition_date}</td>\n'
             html += f'          <td class="adaptive">{rs[0][0]}</td>\n'
             html += f'          <td class="adaptive">{rs[0][1]}</td>\n'
             html += '        </tr>\n'
