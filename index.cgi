@@ -49,7 +49,8 @@ def select_all_books(conn):
             tbl_book.title,
             tbl_book.book_pub_date,
             tbl_book.audio_pub_date,
-            tbl_book.hours || ':' || format('%02d', tbl_book.minutes) AS book_length,
+            tbl_book.hours,
+            tbl_book.minutes,
             tbl_book.id
         FROM
             tbl_book
@@ -100,7 +101,8 @@ def select_books_for_author(conn, author_id):
             tbl_book.title,
             tbl_book.book_pub_date,
             tbl_book.audio_pub_date,
-            tbl_book.hours || ':' || format('%02d', tbl_book.minutes) AS book_length,
+            tbl_book.hours,
+            tbl_book.minutes,
             tbl_book.id
         FROM
             tbl_book
@@ -119,7 +121,7 @@ def select_finished_dates(conn, book_id):
     sql_select_finished_dates = """
         SELECT DISTINCT
             tbl_note.finish_date,
-            CONCAT(tbl_rating.stars || ' ' || tbl_rating.description) 
+            tbl_rating.stars || ' ' || tbl_rating.description AS rating 
         FROM
             tbl_note
             INNER JOIN tbl_rating
@@ -170,7 +172,7 @@ def create_books_table_html(conn, books_result_set):
     narrators. The easiest way to deal with this is to use multiple
     queries.
     """
-    html += '    <table class="adaptive">\n'
+    html = '    <table class="adaptive">\n'
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
     for col_name in ["Title", "Authors", "Translators", "Narrators", "Book Publication Date", "Audiobook Publication Date", "Length"]:
@@ -180,10 +182,9 @@ def create_books_table_html(conn, books_result_set):
     html += '      <tbody class="adaptive">\n'
 
     for row in books_result_set:
-        (title, book_pub_date, audio_pub_date, length, book_id) = row
+        (title, book_pub_date, audio_pub_date, hours, minutes, book_id) = row
 
         # Create keys for sorting by length or title.
-        (hours, minutes) = length.split(":")
         data_length = 60 * int(hours) + int(minutes)
 
         if title.startswith("A "):
@@ -196,6 +197,9 @@ def create_books_table_html(conn, books_result_set):
             data_title = title
         data_title = data_title.upper()
         
+        # Convert hours and minutes to an hh:mm string.
+        length = f"{hours}:{minutes:02d}"
+
         html += '        <tr class="adaptive">\n'
         html += f'          <td data-title="{data_title}" class="adaptive"><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
         html += create_authors_td_html(conn, book_id, "")
@@ -235,10 +239,9 @@ def create_finished_books_table_html(conn, books_result_set):
 
     # Sort the rows by the requested criterion since JavaScript can't sort the table correctly.
     for row in books_result_set:
-        (title, book_pub_date, audio_pub_date, length, book_id) = row
+        (title, book_pub_date, audio_pub_date, hours, minutes, book_id) = row
 
         # Create keys for sorting by length or title.
-        (hours, minutes) = length.split(":")
         data_length = 60 * int(hours) + int(minutes)
 
         # Create case-insensitive keys for sorting by title, ignoring "The", "A",
@@ -252,6 +255,9 @@ def create_finished_books_table_html(conn, books_result_set):
         else:
             data_title = title
         data_title = data_title.upper()
+
+        # Convert hours and minutes to an hh:mm string.
+        length = f"{hours}:{minutes:02d}"
 
         # Select the acquisition date.
         acquisition_date = select_acquisition_date(conn, book_id)
@@ -302,7 +308,7 @@ def create_start_html():
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Audiobooks</title>
             <link rel="stylesheet" href="styles.css">
-            <script src="sort_columns.js"></script>
+            <script src="sort_table.js"></script>
           </head>
           <body>
         """
