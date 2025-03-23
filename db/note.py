@@ -21,7 +21,6 @@ def create_table():
             id INTEGER PRIMARY KEY,
             user_id INTEGER NOT NULL,
             book_id INTEGER NOT NULL,
-            reread TEXT,
             status_id INTEGER NOT NULL,
             finish_date TEXT,
             rating_id INTEGER,
@@ -35,13 +34,12 @@ def create_table():
     conn.conn.execute(sql_create_table)
 
 
-def insert(user_id, book_id, reread, status_id, finish_date, rating_id, comments):
+def insert(user_id, book_id, status_id, finish_date, rating_id, comments):
     """
     Insert the note and return the new note_id.
     """
     logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
-    logger.debug(f"reread: '{reread}'")
     logger.debug(f"status_id: {status_id}")
     logger.debug(f"finish_date: '{finish_date}'")
     logger.debug(f"rating_id: {rating_id}")
@@ -51,23 +49,22 @@ def insert(user_id, book_id, reread, status_id, finish_date, rating_id, comments
         (
             user_id,
             book_id,
-            reread,
             status_id,
             finish_date,
             rating_id,
             comments
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
     """
     cur = conn.conn.execute(
         sql_insert,
-        (user_id, book_id, reread, status_id, finish_date, rating_id, comments))
+        (user_id, book_id, status_id, finish_date, rating_id, comments))
     note_id = cur.lastrowid
     logger.debug(f"New note_id: {note_id}")
     return note_id
 
 
-def save(user_id, book_id, reread, status_id, finish_date, rating_id, comments):
+def save(user_id, book_id, status_id, finish_date, rating_id, comments):
     """
     If the note exists, select the existing note_id.
     Otherwise, insert the note and get the new note_id.
@@ -75,19 +72,18 @@ def save(user_id, book_id, reread, status_id, finish_date, rating_id, comments):
     """
     logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
-    logger.debug(f"reread: '{reread}'")
     logger.debug(f"status_id: {status_id}")
     logger.debug(f"finish_date: '{finish_date}'")
     logger.debug(f"rating_id: {rating_id}")
     logger.debug(f"comments: '{comments}'")
-    note_id = select_id(user_id, book_id, reread, status_id, finish_date, rating_id, comments)
+    note_id = select_id(user_id, book_id, status_id, finish_date, rating_id, comments)
     if note_id is None:
-        note_id = insert(user_id, book_id, reread, status_id, finish_date, rating_id, comments)
+        note_id = insert(user_id, book_id, status_id, finish_date, rating_id, comments)
     logger.debug(f"note_id: {note_id}")
     return note_id
 
 
-def select_id(user_id, book_id, reread, status_id, finish_date, rating_id, comments):
+def select_id(user_id, book_id, status_id, finish_date, rating_id, comments):
     """
     Select and return the ID for the note.
     Return None if the note is not in the database.
@@ -96,7 +92,6 @@ def select_id(user_id, book_id, reread, status_id, finish_date, rating_id, comme
     """
     logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
-    logger.debug(f"reread: '{reread}'")
     logger.debug(f"status: {status_id}")
     logger.debug(f"finish_date: '{finish_date}'")
     logger.debug(f"rating_id: {rating_id}")
@@ -111,7 +106,6 @@ def select_id(user_id, book_id, reread, status_id, finish_date, rating_id, comme
         WHERE
             tbl_note.user_id = ?
             AND tbl_note.book_id = ?
-            AND tbl_note.reread {'IS NULL' if reread is None else '= ?'}
             AND tbl_note.status_id {'IS NULL' if status_id is None else '= ?'}
             AND tbl_note.finish_date {'IS NULL' if finish_date is None else '= ?'}
             AND tbl_note.rating_id {'IS NULL' if rating_id is None else '= ?'}
@@ -123,8 +117,6 @@ def select_id(user_id, book_id, reread, status_id, finish_date, rating_id, comme
         values.append(user_id)
     if book_id is not None:
         values.append(book_id)
-    if reread is not None:
-        values.append(reread)
     if status_id is not None:
         values.append(status_id)
     if finish_date is not None:

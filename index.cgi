@@ -212,7 +212,6 @@ def select_notes_for_book(conn, book_id):
     sql_select_notes_for_book = """
         SELECT
             tbl_user.username,
-            tbl_note.reread,
             tbl_status.name AS status_name,
             tbl_note.finish_date,
             tbl_rating.stars,
@@ -485,10 +484,9 @@ def get_book_data(conn, book_id):
     notes_rs = select_notes_for_book(conn, book_id)
     notes_list = []
     for row in notes_rs:
-        (username, reread, status, finish_date, rating_stars, rating_description, comments) = row
+        (username, status, finish_date, rating_stars, rating_description, comments) = row
         note_dict = {
             "username": username,
-            "reread": reread,
             "status": status,
             "finish_date": finish_date,
             "rating_stars": rating_stars,
@@ -672,7 +670,6 @@ def display_book(conn, book_id):
     for note in book["notes"]:
         html += '        <tr class="adaptive">\n'
         html += f'          <td class="adaptive">{note["username"]}</td>\n'
-        html += f'          <td class="adaptive">{"" if note["reread"] is None else note["reread"]}</td>\n'
         html += f'          <td class="adaptive">{"" if note["status"] is None else note["status"]}</td>\n'
         html += f'          <td class="adaptive">{"" if note["finish_date"] is None else note["finish_date"]}</td>\n'
         rating = ""

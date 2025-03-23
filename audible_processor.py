@@ -103,7 +103,6 @@ def save_data(username, csv_file):
             note_id = save_note(
                 user_id,
                 book_id,
-                csv_reread,
                 csv_status,
                 csv_finished_date,
                 csv_rating,
@@ -206,19 +205,14 @@ def save_narrators(narrators_str):
     return narrator_ids
 
 
-def save_note(user_id, book_id, csv_reread, csv_status, csv_finished_date,
+def save_note(user_id, book_id, csv_status, csv_finished_date,
             csv_rating, csv_comments):
     logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
-    logger.debug(f"reread: '{csv_reread}'")
     logger.debug(f"csv_status: '{csv_status}'")
     logger.debug(f"csv_finished_date: '{csv_finished_date}'")
     logger.debug(f"csv_rating: {csv_rating}")
     logger.debug(f"csv_comments: '{csv_comments}'")
-
-    reread = None
-    if csv_reread != "":
-        reread = csv_reread
 
     status_id = None
     if csv_status != "":
@@ -236,7 +230,7 @@ def save_note(user_id, book_id, csv_reread, csv_status, csv_finished_date,
     if csv_comments != "":
         comments = csv_comments
 
-    note_id = db.note.save(user_id, book_id, reread, status_id, finished_date,
+    note_id = db.note.save(user_id, book_id, status_id, finished_date,
                         rating_id, comments)
     return note_id
 
