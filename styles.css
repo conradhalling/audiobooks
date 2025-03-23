@@ -46,6 +46,7 @@ th, td {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 20rem;
+  vertical-align: top;
 }
 
 th:hover {
