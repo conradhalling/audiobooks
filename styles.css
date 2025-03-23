@@ -26,7 +26,7 @@ table > caption {
   font-family: Verdana;
 }
 
-table > thead > tr {
+tr th {
   background-color: #d9d9d9;
 }
 
@@ -43,13 +43,15 @@ th, td {
   font-family: Verdana;
   font-size: 0.625rem;
   padding: 2px 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 20rem;
   vertical-align: top;
 }
 
-th:hover {
+th.vertical {
+  text-align: left;
+}
+
+th.sortable:hover {
   cursor: pointer;
   background-color: #bfbfbf;
 }
@@ -68,8 +70,13 @@ th:hover {
     border: 3px solid #404040;
   }
 
-  thead tr.adaptive {
+  tr.adaptive th.adaptive {
     background-color: #333333;
+  }
+
+  thead.adaptive tr.adaptive th.sortable:hover {
+    background-color: #4d4d4d;
+    cursor: pointer;
   }
 
   tbody tr:nth-child(odd).adaptive {
@@ -83,10 +90,6 @@ th:hover {
   th.adaptive,
   td.adaptive {
     border: 1px solid #404040;
-  }
-
-  th:hover {
-    background-color: #4d4d4d;
   }
 
   a.adaptive {

@@ -22,6 +22,7 @@ def create_table():
             vendor_id INTEGER NOT NULL,
             acquisition_type_id INTEGER NOT NULL,
             acquisition_date TEXT NOT NULL,
+            discontinued TEXT NULL,
             audible_credits INTEGER NULL,
             price_in_cents INTEGER NULL,
             FOREIGN KEY (user_id) REFERENCES tbl_user(id),
@@ -35,7 +36,7 @@ def create_table():
 
 
 def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
-        audible_credits=None, price_in_cents=None):
+        discontinued, audible_credits=None, price_in_cents=None):
     """
     Insert the acquisition and return the new acquisition_id.
     Raises an exception if the acquisition is already in the database.
@@ -45,6 +46,7 @@ def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
     logger.debug(f"vendor_id: {vendor_id}")
     logger.debug(f"acquisition_type_id: {acquisition_type_id}")
     logger.debug(f"acquisition_date: {acquisition_date}")
+    logger.debug(f"discontinued: {discontinued}")
     logger.debug(f"audible_credits: {audible_credits}")
     logger.debug(f"price_in_cents: {price_in_cents}")
     sql_insert = """
@@ -56,10 +58,11 @@ def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
             vendor_id,
             acquisition_type_id,
             acquisition_date,
+            discontinued,
             audible_credits,
             price_in_cents
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """
     cur = conn.conn.execute(
         sql_insert,
@@ -69,6 +72,7 @@ def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
             vendor_id, 
             acquisition_type_id, 
             acquisition_date,
+            discontinued,
             audible_credits, 
             price_in_cents,
         )
@@ -79,7 +83,7 @@ def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
 
 
 def save(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
-        audible_credits=None, price_in_cents=None):
+        discontinued, audible_credits=None, price_in_cents=None):
     """
     If the acquisition exists, select the existing book_acquisition_id.
     Otherwise, insert the book acquisition and get the new book_acquisition_id.
@@ -90,13 +94,14 @@ def save(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
     logger.debug(f"vendor_id: {vendor_id}")
     logger.debug(f"acquisition_type_id: {acquisition_type_id}")
     logger.debug(f"acquisition_date: '{acquisition_date}'")
+    logger.debug(f"discontinued: {discontinued}")
     logger.debug(f"audible_credits: {audible_credits}")
     logger.debug(f"price_in_cents: {price_in_cents}")
     acquisition_id = select_id(user_id, book_id, vendor_id)
     if acquisition_id is None:
         acquisition_id = insert(
             user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
-            audible_credits, price_in_cents)
+            discontinued, audible_credits, price_in_cents)
     logger.debug(f"acquisition_id: {acquisition_id}")
     return acquisition_id
 

@@ -60,7 +60,7 @@ def save_data(username, csv_file):
             logger.debug(f"minutes: {csv_minutes}")
             audio_pub_date = ""
             book_id = save_book(csv_title, csv_pub_date, audio_pub_date, csv_hours, 
-                                csv_minutes, csv_discontinued)
+                                csv_minutes)
 
             for author_id in author_ids:
                 db.book_author.save(book_id, author_id)
@@ -71,7 +71,7 @@ def save_data(username, csv_file):
             for narrator_id in narrator_ids:
                 db.book_narrator.save(book_id, narrator_id)
             
-            book_acquisiton_id = save_book_acquisition(
+            book_acquisiton_id = save_acquisition(
                 user_id,
                 book_id,
                 vendor_id,
@@ -87,6 +87,29 @@ def save_data(username, csv_file):
                 csv_rating,
                 csv_comments,
             )
+
+
+def save_acquisition(
+        user_id,
+        book_id,
+        vendor_id,
+        csv_acquisition_type, 
+        csv_acquisition_date,
+        discontinued=None,
+        audible_credits=None,
+        price_in_cents=None):
+    """
+    Convert book acquisition attributes and save the book acquisition.
+    """
+    csv_acquisition_type = csv_acquisition_type.strip()
+    acquisition_type = csv_acquisition_type
+    acquisition_type_id = db.acquisition_type.save(acquisition_type)
+    
+    if csv_acquisition_date == "":
+        raise ValueError("csv_acquistion_date must not be empty")
+    db.acquisition.save(
+        user_id, book_id, vendor_id, acquisition_type_id, csv_acquisition_date,
+        discontinued, audible_credits, price_in_cents)
 
 
 def save_authors(authors_str):
@@ -108,7 +131,7 @@ def save_authors(authors_str):
     return author_ids
 
 
-def save_book(title, book_pub_date, audio_pub_date, hours, minutes, discontinued):
+def save_book(title, book_pub_date, audio_pub_date, hours, minutes):
     logger.debug(f"title: '{title}'")
     logger.debug(f"book_pub_date: '{book_pub_date}'")
     logger.debug(f"audio_pub_date: '{audio_pub_date}'")
@@ -118,29 +141,10 @@ def save_book(title, book_pub_date, audio_pub_date, hours, minutes, discontinued
         book_pub_date = None
     if audio_pub_date == "":
         audio_pub_date = None
-    if discontinued == "":
-        discontinued = None
-    book_id = db.book.save(title, book_pub_date, audio_pub_date, hours, minutes, discontinued)
+    book_id = db.book.save(
+        title, book_pub_date, audio_pub_date, hours, minutes)
     logger.debug(f"book_id: {book_id}")
     return book_id
-
-
-def save_book_acquisition(
-        user_id,
-        book_id,
-        vendor_id,
-        csv_acquisition_type, 
-        csv_acquisition_date):
-    """
-    Convert book acquisition attributes and save the book acquisition.
-    """
-    csv_acquisition_type = csv_acquisition_type.strip()
-    acquisition_type = csv_acquisition_type
-    acquisition_type_id = db.acquisition_type.save(acquisition_type)
-    if csv_acquisition_date == "":
-        raise ValueError("csv_acquistion_date must not be empty")
-    db.acquisition.save(
-        user_id, book_id, vendor_id, acquisition_type_id, csv_acquisition_date)
 
 
 def save_narrators(narrators_str):

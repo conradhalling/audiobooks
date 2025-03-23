@@ -51,6 +51,7 @@ def select_acquisition_for_book(conn, book_id):
             tbl_vendor.name,
             tbl_acquisition_type.name,
             tbl_acquisition.acquisition_date,
+            tbl_acquisition.discontinued,
             tbl_acquisition.audible_credits,
             tbl_acquisition.price_in_cents
         FROM
@@ -130,8 +131,7 @@ def select_book(conn, book_id):
             tbl_book.book_pub_date,
             tbl_book.audio_pub_date,
             tbl_book.hours,
-            tbl_book.minutes,
-            tbl_book.discontinued
+            tbl_book.minutes
         FROM
             tbl_book
         WHERE
@@ -291,7 +291,7 @@ def create_books_table_html(conn, books_result_set):
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
     for col_name in ["Title", "Authors", "Translators", "Narrators", "Book Publication Date", "Audiobook Publication Date", "Length"]:
-        html += f'          <th class="adaptive">{col_name} <span>⭥</span></th>\n'
+        html += f'          <th class="adaptive sortable">{col_name} <span>⭥</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody class="adaptive">\n'
@@ -348,8 +348,8 @@ def create_finished_books_table_html(conn, books_result_set):
     html = '    <table class="adaptive">\n'
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
-    for col_name in ["Title", "Authors", "Length", "Acquired Date", "Finished Date", "Rating"]:
-        html += f'          <th class="adaptive" title="{th_tool_tip}">{col_name} <span>⭥</span></th>\n'
+    for col_name in ["Title", "Authors", "Length", "Acquisition Date", "Finished Date", "Rating"]:
+        html += f'          <th class="adaptive sortable" title="{th_tool_tip}">{col_name} <span>⭥</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody class="adaptive">\n'
@@ -421,8 +421,7 @@ def get_book_data(conn, book_id):
     book_rs = select_book(conn, book_id)
     if book_rs is None:
         raise ValueError(f"Found no information for book ID {book_id}.")
-    (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes, 
-     discontinued) = book_rs[0]
+    (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes,) = book_rs[0]
     book_dict = {
         "book_id": db_book_id,
         "title": title,
@@ -430,7 +429,6 @@ def get_book_data(conn, book_id):
         "audio_pub_date": audio_pub_date,
         "hours": hours,
         "minutes": minutes,
-        "discontinued": discontinued,
     }
 
     authors_rs = select_authors_for_book(conn, book_id)
@@ -469,13 +467,14 @@ def get_book_data(conn, book_id):
     acquisition_rs = select_acquisition_for_book(conn, book_id)
     row = acquisition_rs[0]
     (username, acquisition_id, vendor_name, acquisition_type, acquisition_date,
-     audible_credits, price_in_cents) = row
+     discontinued, audible_credits, price_in_cents) = row
     acquisition_dict = {
         "username": username,
         "acquisition_id": acquisition_id,
         "vendor_name": vendor_name,
         "acquisition_type": acquisition_type,
         "acquisition_date": acquisition_date,
+        "discontinued": discontinued,
         "audible_credits": audible_credits,
         "price_in_cents": price_in_cents,
     }
@@ -537,7 +536,7 @@ def display_book(conn, book_id):
     audio_pub_date = "" if book["audio_pub_date"] is None else book["audio_pub_date"]
     price_in_dollars = "" if book["acquisition"]["price_in_cents"] is None\
         else "$" + str(float(book["acquisition"]["price_in_cents"] / 100))
-    availability = "available" if book["discontinued"] is None else "discontinued"
+    discontinued = "" if book["acquisition"]["discontinued"] is None else "discontinued"
     
     author_strings = []
     author_html_strings = []
@@ -569,89 +568,87 @@ def display_book(conn, book_id):
 
     # Title
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Title</th>\n'
+    html += '          <th class="adaptive vertical">Title</th>\n'
     html += f'          <td class="adaptive"><cite>{book["title"]}</cite></td>\n'
     html += '        </tr>\n'
 
     # Authors
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Authors</th>\n'
+    html += '          <th class="adaptive vertical">Authors</th>\n'
     html += f'          <td class="adaptive">{", ".join(author_html_strings)}</td>\n'
     html += '        </tr>\n'
 
     # Length
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Length (h:mm)</th>\n'
+    html += '          <th class="adaptive vertical">Length (hr:min)</th>\n'
     html += f'          <td class="adaptive">{length}</td>\n'
     html += '        </tr>\n'
 
     # Translators
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Translators</th>\n'
+    html += '          <th class="adaptive vertical">Translators</th>\n'
     html += f'          <td class="adaptive">{", ".join(translator_html_strings)}</td>\n'
     html += '        </tr>\n'
 
     # Narrators
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Narraators</th>\n'
+    html += '          <th class="adaptive vertical">Narraators</th>\n'
     html += f'          <td class="adaptive">{", ".join(narrator_html_strings)}</td>\n'
     html += '        </tr>\n'
 
     # Book Pub. Date
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Book Pub. Date</th>\n'
+    html += '          <th class="adaptive vertical">Book Pub. Date</th>\n'
     html += f'          <td class="adaptive">{book_pub_date}</td>\n'
     html += '        </tr>\n'
 
     # Audio Pub. Date
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Audio Pub. Date</th>\n'
+    html += '          <th class="adaptive vertical">Audio Pub. Date</th>\n'
     html += f'          <td class="adaptive">{audio_pub_date}</td>\n'
-    html += '        </tr>\n'
-
-    # Availability
-    html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Availability</th>\n'
-    html += f'          <td class="adaptive">{availability}</td>\n'
     html += '        </tr>\n'
 
     # Acquired By
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Acquired By</th>\n'
+    html += '          <th class="adaptive vertical">Acquired By</th>\n'
     html += f'          <td class="adaptive">{book["acquisition"]["username"]}</td>\n'
     html += '        </tr>\n'
 
     # Vendor
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Vendor</th>\n'
+    html += '          <th class="adaptive vertical">Vendor</th>\n'
     html += f'          <td class="adaptive">{book["acquisition"]["vendor_name"]}</td>\n'
     html += '        </tr>\n'
 
     # Acquisition Type
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Acquisition Type</th>\n'
+    html += '          <th class="adaptive vertical">Acquisition Type</th>\n'
     html += f'          <td class="adaptive">{book["acquisition"]["acquisition_type"]}</td>\n'
     html += '        </tr>\n'
 
     # Acquisition Date
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Acquisition Date</th>\n'
+    html += '          <th class="adaptive vertical">Acquisition Date</th>\n'
     html += f'          <td class="adaptive">{book["acquisition"]["acquisition_date"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Discontinued
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive vertical">Discontinued</th>\n'
+    html += f'          <td class="adaptive">{discontinued}</td>\n'
     html += '        </tr>\n'
 
     # Acquisition Date
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Audible Credits</th>\n'
+    html += '          <th class="adaptive vertical">Audible Credits</th>\n'
     html += f'          <td class="adaptive">{"" if book["acquisition"]["audible_credits"] is None else book["acquisition"]["audible_credits"]}</td>\n'
     html += '        </tr>\n'
 
     # Price (Dollars)
     html += '        <tr class="adaptive">\n'
-    html += '          <th class="adaptive">Price</th>\n'
+    html += '          <th class="adaptive vertical">Price</th>\n'
     html += f'          <td class="adaptive">{price_in_dollars}</td>\n'
     html += '        </tr>\n'
-
-
 
     html += '      </tbody>\n'
     html += '    </table>\n'
@@ -661,7 +658,7 @@ def display_book(conn, book_id):
     html += '    <table class="adaptive">\n'
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
-    headers = ('Listener', 'Reread', 'Status', 'Finish Date', "Rating", "Comments")
+    headers = ('Listener', 'Status', 'Finish Date', "Rating", "Comments")
     for header in headers:
         html += f'          <th class="adaptive">{header}</th>\n'
     html += '        </tr>\n'
@@ -679,8 +676,6 @@ def display_book(conn, book_id):
         html += f'          <td class="adaptive">{"" if note["comments"] is None else note["comments"]}</td>\n'
         html += '        </tr>\n'
     html += '    </table>\n'
-    html += '    <pre>\n'
-    html += f'{book}</pre>\n'
     html += create_end_html()
     print(html)
 

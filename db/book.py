@@ -21,14 +21,13 @@ def create_table():
             book_pub_date TEXT,
             audio_pub_date TEXT,
             hours INTEGER NOT NULL,
-            minutes INTEGER NOT NULL,
-            discontinued TEXT
+            minutes INTEGER NOT NULL
         ) strict
     """
     conn.conn.execute(sql_create_table)
 
 
-def insert(title, book_pub_date, audio_pub_date, hours, minutes, discontinued):
+def insert(title, book_pub_date, audio_pub_date, hours, minutes):
     """
     Insert the book and return the new book_id.
     Raises an exception if the book is already in the database.
@@ -38,7 +37,6 @@ def insert(title, book_pub_date, audio_pub_date, hours, minutes, discontinued):
     logger.debug(f"audio_pub_date: '{audio_pub_date}'")
     logger.debug(f"hours: {hours}")
     logger.debug(f"minutes: {minutes}")
-    logger.debug(f"discontinued: '{discontinued}'")
     sql_insert = """
         INSERT INTO tbl_book
         (
@@ -46,18 +44,18 @@ def insert(title, book_pub_date, audio_pub_date, hours, minutes, discontinued):
             book_pub_date,
             audio_pub_date,
             hours,
-            minutes,
-            discontinued
+            minutes
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
     """
-    cur = conn.conn.execute(sql_insert, (title, book_pub_date, audio_pub_date, hours, minutes, discontinued,))
+    cur = conn.conn.execute(
+        sql_insert, (title, book_pub_date, audio_pub_date, hours, minutes))
     book_id = cur.lastrowid
     logger.debug(f"New book_id: {book_id}")
     return book_id
 
 
-def save(title, book_pub_date, audio_pub_date, hours, minutes, discontinued):
+def save(title, book_pub_date, audio_pub_date, hours, minutes):
     """
     If the book exists, select the existing book_id.
     Otherwise, insert the book and get the new book_id.
@@ -68,10 +66,9 @@ def save(title, book_pub_date, audio_pub_date, hours, minutes, discontinued):
     logger.debug(f"audio_pub_date: '{audio_pub_date}'")
     logger.debug(f"hours: {hours}")
     logger.debug(f"minutes: {minutes}")
-    logger.debug(f"discontinued: '{discontinued}'")
     book_id = select_id(title)
     if book_id is None:
-        book_id = insert(title, book_pub_date, audio_pub_date, hours, minutes, discontinued)
+        book_id = insert(title, book_pub_date, audio_pub_date, hours, minutes)
     logger.debug(f"book_id for title {title}: {book_id}")
     return book_id
 
