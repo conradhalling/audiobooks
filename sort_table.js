@@ -1,43 +1,59 @@
+"use strict";
+
 // Click on a table column header to sort a table by the values in the column.
 //
-// This code is revised from the source:
-// https://github.com/VFDouglas/HTML-Order-Table-By-Column/blob/main/index.html
-//
-// When using this script, sortable columns in an HTML table must contain a
-// span element in the th element. It is helpful but not required to put a
-// "\u2195" character (up down arrow) in the span element.
+// When using this script, sortable columns in an HTML table must contain a span
+// element in the th element. It is helpful but not required to put a "⭥"
+// ("\u2B65" or "&#x2B65;") character (up down triangle-headed arrow) in the
+// span element as a visual cue that the table can be sorted using that column.
 // 
 // For example:
 //
 // <table>
 //   <thead>
 //     <tr>
-//       <th>Title <span>\u2195</span></th>
-//       <th>Authors <span>\u2195</span></th>
-//       <th>Length <span>\u2195</span></th>
-//       <th>Acquired Date <span>\u2195</span></th>
-//       <th>Finished Date <span>\u2195</span></th>
-//       <th>Rating <span>\u2195</span></th>
+//       <th>Title <span>⭥</span></th>
+//       <th>Authors <span>⭥</span></th>
+//       <th>Length <span>⭥</span></th>
+//       <th>Acquired Date <span>⭥</span></th>
+//       <th>Finished Date <span>⭥</span></th>
+//       <th>Rating <span>⭥</span></th>
 //     </tr>
 //   </thead>
 //
-// Include sort keys in data attributes of the td elements. For
-// case-independent sort keys, convert the value to all uppercase or all
-// lowercase. In the example below, book titles have been converted to all
-// uppercase after removing "A", "An", or "The" as the first word of the title.
-// Author's names have the surname first. Audiobook lengths expressed in
-// hours::minutes (31:15) are converted to minutes (1875) for the sort key
-// value.
+// By default, sorting uses the text content of the td element converted to
+// uppercase for case-independent sorting. If all values in the column can be
+// converted to numbers, sorting is numeric; otherwise, sorting is
+// lexicographical.
+//
+// Create custom sort keys by transforming the content of the td element into a
+// form useful for sorting. Store the custom sort key in the data-sortkey
+// attribute of the td element.
+// 
+// Examples of custom sort keys:
+// 
+// To sort book titles, remove "A", "An", or "The" from the
+// beginning of the title and convert the title to all uppercase.
+// 
+// To sort names, create a sort key with the surname first.
+// 
+// To sort audiobook lengths, originally expressed in hours:minutes format
+// (e.g., 31:15), create the sort keys by converting the lengths to minutes
+// (here, 60 * 31 + 15 = 1875).
+//
+// ISO 8601-format datetime values can be sorted as strings and do not need to
+// be transformed. Dates in other formats (e.g., American-style 3/23/2025) need
+// to be transformed to a sort key in ISO 8601 format (here, 2025-03-23).
 // 
 // For example:
 //
-// <tr class="adaptive">
-//     <td data-title="OUR MUTUAL FRIEND" class="adaptive"><a class="adaptive" href="?book_id=1">Our Mutual Friend</a></td>
-//     <td data-author="DICKENS CHARLES" class="adaptive"><a class="adaptive" href="?author_id=1">Charles Dickens</a></td>
-//     <td data-length="1875" class="adaptive right">31:15</td>
-//     <td class="adaptive">2008-05-17</td>
-//     <td class="adaptive">2008-06-17</td>
-//     <td class="adaptive">5 excellent</td>
+// <tr>
+//   <td data-sortkey="OUR MUTUAL FRIEND"><a href="?book_id=1">Our Mutual Friend</a></td>
+//   <td data-sortkey="DICKENS CHARLES"><a href="?author_id=1">Charles Dickens</a></td>
+//   <td data-sortkey="1875">31:15</td>
+//   <td>2008-05-17</td>
+//   <td>2008-06-17</td>
+//   <td>5 excellent</td>
 // </tr>
 //
 // Use CSS styles to change the cursor to a pointer and change the background
@@ -50,127 +66,127 @@
 //     background-color: #bfbfbf;
 // }
 //
-// Modify the function below to use the included sort keys for sorting. The
-// default sort keys are the text content of the td elements.
+// As an additional prompt, add a title attribute to the th element.
 //
-// The code sorts the rows numerically where possible.
-// Note that ISO dates can be sorted as strings.
+// For example:
+//   <th title="Click this header to sort the table by the values in this column.">Authors <span>⭥</span></th>
+//
+// This code is revised from these sources:
+// - https://stackoverflow.com/questions/10683712/html-table-sort
+// - https://github.com/VFDouglas/HTML-Order-Table-By-Column/blob/main/index.html
 
-
-"use strict";
-const UP_ARROW = "\u2191";
-const DOWN_ARROW = "\u2193";
-const UP_DOWN_ARROW = "\u2195";
+const UP_ARROW = "⭡";
+const DOWN_ARROW = "⭣";
+const UP_DOWN_ARROW = "⭥";
 
 window.onload = function () {
-    document.querySelectorAll('th').forEach((th_element) => {
-        th_element.addEventListener('click', function () {
-            const table = this.closest('table');
+  document.querySelectorAll('th').forEach((th_element) => {
+    th_element.addEventListener('click', function () {
+      // Get the table that is the parent of this th element.
+      const table = this.closest('table');
 
-            // The column is sortable if the th element contains a span element.
-            if (this.querySelector('span')) {
-                const th_span = this.querySelector('span');
-                // Clicking the th element changes the order of the sort.
-                // If the up arrow is present, the user is requesting a descending sort.
-                // If the up down arrow or the down arrow is present, the user is
-                // requesting an ascending sort.
-                const order = th_span.innerHTML.includes(UP_ARROW) ? 'desc' : 'asc';
+      // The column is sortable if the th element contains a span element.
+      if (this.querySelector('span')) {
+        const th_span = this.querySelector('span');
+        // Clicking the th element changes the order of the sort.
+        // If the up arrow is present, the user is requesting a descending sort.
+        // If the up down arrow or the down arrow is present, the user is
+        // requesting an ascending sort.
+        const order = th_span.innerHTML.includes(UP_ARROW) ? 'desc' : 'asc';
 
-                // Initialize the object array and the counters.
-                const tr_objects = [];
-                let string_count = 0;
+        // Initialize the object array and the counter.
+        const tr_objects = [];
+        let string_count = 0;
 
-                // Iterate through the tr elements to obtain the sort key and index.
-                const tr_elements = table.querySelectorAll('tbody tr');
-                for (let i = 0; i < tr_elements.length; i++) {
-                    // Get the standard key for the element.
-                    const tr_element = tr_elements[i];
-                    let sort_key = tr_element.children[th_element.cellIndex].textContent.toUpperCase();
+        // Iterate through the tr elements to obtain the sort key and index.
+        const tr_elements = table.querySelectorAll('tbody tr');
+        for (let i = 0; i < tr_elements.length; i++) {
+          const tr_element = tr_elements[i];
+          // Get the special sort key for this element if it exists.
+          // Otherwise, use the uppercase text content of the element as the
+          // sort key.
+          let sort_key;
+          if (tr_element.children[th_element.cellIndex].hasAttribute("data-sortkey")) {
+            sort_key = tr_element.children[th_element.cellIndex].getAttribute("data-sortkey");
+          }
+          else {
+            sort_key = tr_element.children[th_element.cellIndex].textContent.toUpperCase();
+          }
 
-                    // Get the special key for this element if it exists.
-                    if (tr_element.children[th_element.cellIndex].hasAttribute('data-length')) {
-                        sort_key = tr_element.children[th_element.cellIndex].getAttribute('data-length');
-                    }
-                    else if (tr_element.children[th_element.cellIndex].hasAttribute('data-title')) {
-                        sort_key = tr_element.children[th_element.cellIndex].getAttribute('data-title');
-                    }
-                    else if (tr_element.children[th_element.cellIndex].hasAttribute('data-author')) {
-                        sort_key = tr_element.children[th_element.cellIndex].getAttribute('data-author');
-                    }
+          // Count the sort keys that are strings.
+          // When finished, if string_count is 0, all keys are numbers.
+          if (isNaN(sort_key)) {
+            string_count++;
+          }
 
-                    // Count the sort keys that are strings.
-                    // When finished, if string_count is 0, all keys were numbers.
-                    if (isNaN(sort_key)) {
-                        string_count++;
-                    }
+          // Convert the key, index, and element into an object for sorting
+          // and push it onto the array.
+          const tr_object = {
+            sort_key: sort_key,
+            index: i,
+            html: tr_element.outerHTML,
+          };
+          tr_objects.push(tr_object);
+        }
 
-                    // Convert the key, index, and element into an object for sorting
-                    // and push it onto the array.
-                    const tr_object = {
-                        sort_key: sort_key,
-                        index: i,
-                        html: tr_element.outerHTML
-                    };
-                    tr_objects.push(tr_object);
-                }
-
-                // Sort the objects by sort_key first and then by index to keep
-                // the sort stable.
-                if (string_count === 0) {
-                    // Compare the sort_key values as numbers.
-                    tr_objects.sort(function (a, b) {
-                        if (a.sort_key - b.sort_key < 0) {
-                            return -1;
-                        }
-                        else if (a.sort_key - b.sort_key > 0) {
-                            return 1;
-                        }
-                        else {
-                            return a.index - b.index;
-                        }
-                    });
-                }
-                else {
-                    // Compare the sort_key values as strings.
-                    tr_objects.sort(function (a, b) {
-                        const result = a.sort_key.localeCompare(b.sort_key);
-                        if (result !== 0) {
-                            return result;
-                        }
-                        else {
-                            return a.index - b.index;
-                        }
-                    });
-                }
-
-                // Reverse the sort for a descending sort.
-                if (order === "desc") {
-                    tr_objects.reverse();
-                }
-
-                // Rebuild the tbody's HTML for the sorted tr elements.
-                let html = '';
-                for (let i = 0; i < tr_objects.length; i++) {
-                    html += tr_objects[i].html;
-                }
-                table.getElementsByTagName('tbody')[0].innerHTML = html;
-
-                // Reset the arrows for all th span elements of this table to "up down arrow".
-                const table_th_elements = table.getElementsByTagName('th');
-                for (const table_th_element of table_th_elements) {
-                    table_th_element.querySelector('span').innerHTML = UP_DOWN_ARROW;
-                }
-
-                // Set the arrow in the th span element of the current column.
-                // A down arrow indicates the column is sorted in descending order.
-                // An up arrow indicates the column is sorted in ascending order.
-                if (order === "desc") {
-                    th_span.innerHTML = DOWN_ARROW;
-                }
-                else {
-                    th_span.innerHTML = UP_ARROW;
-                }
+        // Sort the objects by sort_key first and then by index to keep
+        // the sort stable.
+        if (string_count === 0) {
+          // Compare the sort_key values as numbers.
+          tr_objects.sort(function (a, b) {
+            if (a.sort_key - b.sort_key < 0) {
+              return -1;
             }
-        });
+            else if (a.sort_key - b.sort_key > 0) {
+              return 1;
+            }
+            else {
+              return a.index - b.index;
+            }
+          });
+        }
+        else {
+          // Compare the sort_key values as strings.
+          tr_objects.sort(function (a, b) {
+            const result = a.sort_key.localeCompare(b.sort_key);
+            if (result !== 0) {
+              return result;
+            }
+            else {
+              return a.index - b.index;
+            }
+          });
+        }
+
+        // Reverse the array for a descending sort.
+        if (order === "desc") {
+          tr_objects.reverse();
+        }
+
+        // Rebuild the tbody's HTML with the sorted tr elements.
+        let html = '';
+        for (let i = 0; i < tr_objects.length; i++) {
+          html += tr_objects[i].html;
+        }
+        table.getElementsByTagName('tbody')[0].innerHTML = html;
+
+        // Reset the arrows for all th span elements of this table to "up down
+        // arrow".
+        const table_th_elements = table.getElementsByTagName('th');
+        for (const table_th_element of table_th_elements) {
+          table_th_element.querySelector('span').innerHTML = UP_DOWN_ARROW;
+        }
+
+        // Set the arrow in the th span element of the current column.
+        // A down arrow indicates the column is sorted in descending order.
+        // An up arrow indicates the column is sorted in ascending order.
+        if (order === "desc") {
+          th_span.innerHTML = DOWN_ARROW;
+        }
+        else {
+          th_span.innerHTML = UP_ARROW;
+        }
+      }
     });
+  });
 };
