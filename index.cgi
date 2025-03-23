@@ -43,6 +43,33 @@ def select_acquisition_date(conn, book_id):
     return result_set[0]
 
 
+def select_acquisition_for_book(conn, book_id):
+    sql_select_acquisition_for_book = """
+        SELECT
+            tbl_user.username,
+            tbl_acquisition.id,
+            tbl_vendor.name,
+            tbl_acquisition_type.name,
+            tbl_acquisition.acquisition_date,
+            tbl_acquisition.audible_credits,
+            tbl_acquisition.price_in_cents
+        FROM
+            tbl_acquisition
+            INNER JOIN tbl_user
+                ON tbl_acquisition.user_id = tbl_user.id
+            INNER JOIN tbl_vendor
+                ON tbl_acquisition.vendor_id = tbl_vendor.id
+            INNER JOIN tbl_acquisition_type
+                ON tbl_acquisition.acquisition_type_id = tbl_acquisition_type.id
+        WHERE
+            tbl_acquisition.book_id = ?
+    """
+    cur = conn.execute(sql_select_acquisition_for_book, (book_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
 def select_all_books(conn):
     sql_select_all_books = """
         SELECT
@@ -95,6 +122,27 @@ def select_authors_for_book(conn, book_id):
     return result_set
 
 
+def select_book(conn, book_id):
+    sql_select_book = """
+        SELECT
+            tbl_book.id,
+            tbl_book.title,
+            tbl_book.book_pub_date,
+            tbl_book.audio_pub_date,
+            tbl_book.hours,
+            tbl_book.minutes,
+            tbl_book.discontinued
+        FROM
+            tbl_book
+        WHERE
+            tbl_book.id = ?
+    """
+    cur = conn.execute(sql_select_book, (book_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
 def select_books_for_author(conn, author_id):
     sql_select_books_for_author = """
         SELECT
@@ -126,6 +174,9 @@ def select_finished_dates(conn, book_id):
             tbl_note
             INNER JOIN tbl_rating
                 ON tbl_note.rating_id = tbl_rating.id
+            INNER JOIN tbl_status
+                ON tbl_note.status_id = tbl_status.id
+                AND tbl_status.name = 'Finished'
         WHERE
             tbl_note.book_id = ?
             AND tbl_note.finish_date IS NOT NULL
@@ -134,6 +185,71 @@ def select_finished_dates(conn, book_id):
             tbl_note.finish_date ASC
     """
     cur = conn.execute(sql_select_finished_dates, (book_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
+def select_narrators_for_book(conn, book_id):
+    sql_select_narrators_for_book = """
+        SELECT
+            tbl_narrator.id,
+            tbl_narrator.name
+        FROM
+            tbl_book_narrator
+            INNER JOIN tbl_narrator
+                ON tbl_book_narrator.narrator_id = tbl_narrator.id
+        WHERE
+            tbl_book_narrator.book_id = ?
+    """
+    cur = conn.execute(sql_select_narrators_for_book, (book_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
+def select_notes_for_book(conn, book_id):
+    sql_select_notes_for_book = """
+        SELECT
+            tbl_user.username,
+            tbl_note.reread,
+            tbl_status.name AS status_name,
+            tbl_note.finish_date,
+            tbl_rating.stars,
+            tbl_rating.description,
+            tbl_note.comments
+        FROM
+            tbl_note
+            INNER JOIN tbl_user
+                ON tbl_note.user_id = tbl_user.id
+            INNER JOIN tbl_status
+                ON tbl_note.status_id = tbl_status.id
+            INNER JOIN tbl_rating
+                ON tbl_note.rating_id = tbl_rating.id
+        WHERE
+            tbl_note.book_id = ?
+        ORDER BY
+            tbl_note.finish_date
+    """
+    cur = conn.execute(sql_select_notes_for_book, (book_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
+def select_translators_for_book(conn, book_id):
+    sql_select_translators_for_book = """
+        SELECT
+            tbl_translator.id,
+            tbl_translator.name
+        FROM
+            tbl_book_translator
+            INNER JOIN tbl_translator
+                ON tbl_book_translator.translator_id = tbl_translator.id
+        WHERE
+            tbl_book_translator.book_id = ?
+    """
+    cur = conn.execute(sql_select_translators_for_book, (book_id,))
     result_set = cur.fetchall()
     cur.close()
     return result_set
@@ -161,7 +277,7 @@ def create_authors_td_html(conn, book_id, rowspan_attr):
             first_author = False
         author_string = f'<a class="adaptive" href="?author_id={author_id}">{author_name}</a>'
         author_strings.append(author_string)
-    html = f'          <td data-author="{first_author_names_key}" class="adaptive"{rowspan_attr}>{", ".join(author_strings)}</td>\n'
+    html = f'          <td data-sortkey="{first_author_names_key}" class="adaptive"{rowspan_attr}>{", ".join(author_strings)}</td>\n'
     return html
 
 
@@ -176,7 +292,7 @@ def create_books_table_html(conn, books_result_set):
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
     for col_name in ["Title", "Authors", "Translators", "Narrators", "Book Publication Date", "Audiobook Publication Date", "Length"]:
-        html += f'          <th class="adaptive">{col_name} <span>\u2195</span></th>\n'
+        html += f'          <th class="adaptive">{col_name} <span>⭥</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody class="adaptive">\n'
@@ -201,13 +317,13 @@ def create_books_table_html(conn, books_result_set):
         length = f"{hours}:{minutes:02d}"
 
         html += '        <tr class="adaptive">\n'
-        html += f'          <td data-title="{data_title}" class="adaptive"><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
+        html += f'          <td data-sortkey="{data_title}" class="adaptive"><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
         html += create_authors_td_html(conn, book_id, "")
         html += '          <td class="adaptive"></td>\n' # translators
         html += '          <td class="adaptive"></td>\n' # narrators
         html += f'          <td class="adaptive">{book_pub_date if book_pub_date is not None else ""}</td>\n'
         html += f'          <td class="adaptive">{audio_pub_date if audio_pub_date is not None else ""}</td>\n'
-        html += f'          <td data-length="{data_length}" class="adaptive right">{length}</td>\n'
+        html += f'          <td data-sortkey="{data_length}" class="adaptive right">{length}</td>\n'
         html += '        </tr>\n'
     html += '      </tbody>\n'
     html += '    </table>\n'
@@ -226,13 +342,15 @@ def create_finished_books_table_html(conn, books_result_set):
     There can be multiple authors of a book, where each author will have a link
     in the table. A book can be finished more than once. The easiest way to deal
     with these is to use multiple queries.
+    
+    "⭥" is "\u2B65" or "&#x2B65;".
     """
     th_tool_tip = "Click this header to sort the table by the values in this column."
     html = '    <table class="adaptive">\n'
     html += '      <thead class="adaptive">\n'
     html += '        <tr class="adaptive">\n'
     for col_name in ["Title", "Authors", "Length", "Acquired Date", "Finished Date", "Rating"]:
-        html += f'          <th class="adaptive" title="{th_tool_tip}">{col_name} <span>\u2195</span></th>\n'
+        html += f'          <th class="adaptive" title="{th_tool_tip}">{col_name} <span>⭥</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody class="adaptive">\n'
@@ -265,31 +383,12 @@ def create_finished_books_table_html(conn, books_result_set):
         # Select the finished date and rating.
         rs = select_finished_dates(conn, book_id)
 
-        # # Create table rows only for finished books, reporting all finished dates.
-        # if len(rs) > 0:
-        #     rowspan_count = len(rs)
-        #     rowspan_attr = f' rowspan="{rowspan_count}"' if rowspan_count > 1 else ""
-        #     html += '        <tr class="adaptive">\n'
-        #     html += f'          <td data-title="{data_title}" class="adaptive"{rowspan_attr}><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
-        #     html += create_authors_td_html(conn, book_id, rowspan_attr)
-        #     html += f'          <td data-length="{data_minutes}" class="adaptive right"{rowspan_attr}>{length}</td>\n'
-        #     html += f'          <td  class="adaptive"{rowspan_attr}>{acquisition_date}</td>\n'
-        #     html += f'          <td class="adaptive">{rs[0][0]}</td>\n'
-        #     html += f'          <td class="adaptive">{rs[0][1]}</td>\n'
-        #     html += '        </tr>\n'
-
-        #     for row in rs[1:]:
-        #         html += '        <tr class="adaptive">\n'
-        #         html += f'          <td class="adaptive">{row[0]}</td>\n'
-        #         html += f'          <td class="adaptive">{row[1]}</td>\n'
-        #         html += f'        </tr>\n'
-
         # Create table rows only for finished books, reporting only the first finished date.
         if len(rs) > 0:
             html += '        <tr class="adaptive">\n'
-            html += f'          <td data-title="{data_title}" class="adaptive"><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
+            html += f'          <td data-sortkey="{data_title}" class="adaptive"><a class="adaptive" href="?book_id={book_id}">{title}</a></td>\n'
             html += create_authors_td_html(conn, book_id, "")
-            html += f'          <td data-length="{data_length}" class="adaptive right">{length}</td>\n'
+            html += f'          <td data-sortkey="{data_length}" class="adaptive right">{length}</td>\n'
             html += f'          <td class="adaptive">{acquisition_date}</td>\n'
             html += f'          <td class="adaptive">{rs[0][0]}</td>\n'
             html += f'          <td class="adaptive">{rs[0][1]}</td>\n'
@@ -317,6 +416,94 @@ def create_start_html():
 
 ##########
 
+# Get data code.
+
+def get_book_data(conn, book_id):
+    book_rs = select_book(conn, book_id)
+    if book_rs is None:
+        raise ValueError(f"Found no information for book ID {book_id}.")
+    (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes, 
+     discontinued) = book_rs[0]
+    book_dict = {
+        "book_id": db_book_id,
+        "title": title,
+        "book_pub_date": book_pub_date,
+        "audio_pub_date": audio_pub_date,
+        "hours": hours,
+        "minutes": minutes,
+        "discontinued": discontinued,
+    }
+
+    authors_rs = select_authors_for_book(conn, book_id)
+    authors_list = []
+    for row in authors_rs:
+        (author_id, author_name) = row
+        author_dict = {
+            "author_id": author_id,
+            "author_name": author_name,
+        }
+        authors_list.append(author_dict)
+    book_dict["authors"] = authors_list
+
+    translators_rs = select_translators_for_book(conn, book_id)
+    translators_list = []
+    for row in translators_rs:
+        (translator_id, translator_name) = row
+        translator_dict = {
+            "translator_id": translator_id,
+            "translator_name": translator_name,
+        }
+        translators_list.append(translator_dict)
+    book_dict["translators"] = translators_list
+
+    narrators_rs = select_narrators_for_book(conn, book_id)
+    narrators_list = []
+    for row in narrators_rs:
+        (narrator_id, narrator_name) = row
+        narrator_dict = {
+            "narrator_id": narrator_id,
+            "narrator_name": narrator_name,
+        }
+        narrators_list.append(narrator_dict)
+    book_dict["narrators"] = narrators_list
+
+    acquisition_rs = select_acquisition_for_book(conn, book_id)
+    row = acquisition_rs[0]
+    (username, acquisition_id, vendor_name, acquisition_type, acquisition_date,
+     audible_credits, price_in_cents) = row
+    acquisition_dict = {
+        "username": username,
+        "acquisition_id": acquisition_id,
+        "vendor_name": vendor_name,
+        "acquisition_type": acquisition_type,
+        "acquisition_date": acquisition_date,
+        "audible_credits": audible_credits,
+        "price_in_cents": price_in_cents,
+    }
+    book_dict["acquisition"] = acquisition_dict
+
+    notes_rs = select_notes_for_book(conn, book_id)
+    notes_list = []
+    for row in notes_rs:
+        (username, reread, status, finish_date, rating_stars, rating_description, comments) = row
+        note_dict = {
+            "username": username,
+            "reread": reread,
+            "status": status,
+            "finish_date": finish_date,
+            "rating_stars": rating_stars,
+            "rating_description": rating_description,
+            "comments": comments,
+        }
+        notes_list.append(note_dict)
+    book_dict["notes"] = notes_list
+
+    return book_dict
+
+
+##########
+
+
 # Display code.
 
 
@@ -326,19 +513,6 @@ def display_all_books(conn):
     html = create_start_html()
     html += '    <h1 class="adaptive">All Audiobooks</h1>\n'
     html += create_books_table_html(conn, all_books_rs)
-    html += create_end_html()
-    print(html)
-
-
-def display_finished_books(conn):
-    """
-        title, authors, length, acquisition_date, finish_date, rating
-    """
-    print("Content-Type: text/html\r\n\r\n", end="")
-    all_books_rs = select_all_books(conn)
-    html = create_start_html()
-    html += '    <h1 class="adaptive">Finished Audiobooks</h1>\n'
-    html += create_finished_books_table_html(conn, all_books_rs)
     html += create_end_html()
     print(html)
 
@@ -357,8 +531,172 @@ def display_author(conn, author_id):
 def display_book(conn, book_id):
     print("Content-Type: text/html\r\n\r\n", end="")
     html = create_start_html()
-    html += f'    <h1 class="adaptive">Book {book_id}</h1>'
-    html += f'    <p class="adaptive">{book_id}</p>'
+    book = get_book_data(conn, book_id)
+    
+    # Precompute cell values.
+    length = "" if book["hours"] is None else f'{book["hours"]}:{book["minutes"]:02d}'
+    book_pub_date = "" if book["book_pub_date"] is None else book["book_pub_date"]
+    audio_pub_date = "" if book["audio_pub_date"] is None else book["audio_pub_date"]
+    price_in_dollars = "" if book["acquisition"]["price_in_cents"] is None\
+        else "$" + str(float(book["acquisition"]["price_in_cents"] / 100))
+    availability = "available" if book["discontinued"] is None else "discontinued"
+    
+    author_strings = []
+    author_html_strings = []
+    for author_dict in book["authors"]:
+        author_id = author_dict["author_id"]
+        author_name = author_dict["author_name"]
+        author_string = f'<a class="adaptive" href="?author_id={author_id}">{author_name}</a>'
+        author_html_strings.append(author_string)
+        author_strings.append(author_name)
+    
+    translator_html_strings = []
+    for translator_dict in book["translators"]:
+        translator_id = translator_dict["translator_id"]
+        translator_name = translator_dict["translator_name"]
+        translator_string = f'<a class="adaptive" href="?translator_id={translator_id}">{translator_name}</a>'
+        translator_html_strings.append(translator_string)
+
+    narrator_html_strings = []
+    for narrator_dict in book["narrators"]:
+        narrator_id = narrator_dict["narrator_id"]
+        narrator_name = narrator_dict["narrator_name"]
+        narrator_string = f'<a class="adaptive" href="?narrator_id={narrator_id}">{narrator_name}</a>'
+        narrator_html_strings.append(narrator_string)
+
+    html += f'    <h1 class="adaptive"><cite>{book["title"]}</cite>, by {", ".join(author_strings)}</h1>'
+    html += '    <h2>Book Information</h2>\n'
+    html += '    <table class="adaptive">\n'
+    html += '      <tbody class="adaptive">\n'
+
+    # Title
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Title</th>\n'
+    html += f'          <td class="adaptive"><cite>{book["title"]}</cite></td>\n'
+    html += '        </tr>\n'
+
+    # Authors
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Authors</th>\n'
+    html += f'          <td class="adaptive">{", ".join(author_html_strings)}</td>\n'
+    html += '        </tr>\n'
+
+    # Length
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Length (h:mm)</th>\n'
+    html += f'          <td class="adaptive">{length}</td>\n'
+    html += '        </tr>\n'
+
+    # Translators
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Translators</th>\n'
+    html += f'          <td class="adaptive">{", ".join(translator_html_strings)}</td>\n'
+    html += '        </tr>\n'
+
+    # Narrators
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Narraators</th>\n'
+    html += f'          <td class="adaptive">{", ".join(narrator_html_strings)}</td>\n'
+    html += '        </tr>\n'
+
+    # Book Pub. Date
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Book Pub. Date</th>\n'
+    html += f'          <td class="adaptive">{book_pub_date}</td>\n'
+    html += '        </tr>\n'
+
+    # Audio Pub. Date
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Audio Pub. Date</th>\n'
+    html += f'          <td class="adaptive">{audio_pub_date}</td>\n'
+    html += '        </tr>\n'
+
+    # Availability
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Availability</th>\n'
+    html += f'          <td class="adaptive">{availability}</td>\n'
+    html += '        </tr>\n'
+
+    # Acquired By
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Acquired By</th>\n'
+    html += f'          <td class="adaptive">{book["acquisition"]["username"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Vendor
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Vendor</th>\n'
+    html += f'          <td class="adaptive">{book["acquisition"]["vendor_name"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Acquisition Type
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Acquisition Type</th>\n'
+    html += f'          <td class="adaptive">{book["acquisition"]["acquisition_type"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Acquisition Date
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Acquisition Date</th>\n'
+    html += f'          <td class="adaptive">{book["acquisition"]["acquisition_date"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Acquisition Date
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Audible Credits</th>\n'
+    html += f'          <td class="adaptive">{"" if book["acquisition"]["audible_credits"] is None else book["acquisition"]["audible_credits"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Price (Dollars)
+    html += '        <tr class="adaptive">\n'
+    html += '          <th class="adaptive">Price</th>\n'
+    html += f'          <td class="adaptive">{price_in_dollars}</td>\n'
+    html += '        </tr>\n'
+
+
+
+    html += '      </tbody>\n'
+    html += '    </table>\n'
+
+    # Listener Notes
+    html += '    <h2>Listener Notes</h2>\n'
+    html += '    <table class="adaptive">\n'
+    html += '      <thead class="adaptive">\n'
+    html += '        <tr class="adaptive">\n'
+    headers = ('Listener', 'Reread', 'Status', 'Finish Date', "Rating", "Comments")
+    for header in headers:
+        html += f'          <th class="adaptive">{header}</th>\n'
+    html += '        </tr>\n'
+    html += '      </thead>\n'
+    html += '      <tbody class="adaptive">\n'
+    for note in book["notes"]:
+        html += '        <tr class="adaptive">\n'
+        html += f'          <td class="adaptive">{note["username"]}</td>\n'
+        html += f'          <td class="adaptive">{"" if note["reread"] is None else note["reread"]}</td>\n'
+        html += f'          <td class="adaptive">{"" if note["status"] is None else note["status"]}</td>\n'
+        html += f'          <td class="adaptive">{"" if note["finish_date"] is None else note["finish_date"]}</td>\n'
+        rating = ""
+        if note["rating_stars"] is not None:
+            rating = str(note["rating_stars"]) + " " + note["rating_description"]
+        html += f'          <td class="adaptive">{rating}</td>\n'
+        html += f'          <td class="adaptive">{"" if note["comments"] is None else note["comments"]}</td>\n'
+        html += '        </tr>\n'
+    html += '    </table>\n'
+    html += '    <pre>\n'
+    html += f'{book}</pre>\n'
+    html += create_end_html()
+    print(html)
+
+
+def display_finished_books(conn):
+    """
+        title, authors, length, acquisition_date, finish_date, rating
+    """
+    print("Content-Type: text/html\r\n\r\n", end="")
+    all_books_rs = select_all_books(conn)
+    html = create_start_html()
+    html += '    <h1 class="adaptive">Finished Audiobooks</h1>\n'
+    html += create_finished_books_table_html(conn, all_books_rs)
     html += create_end_html()
     print(html)
 
