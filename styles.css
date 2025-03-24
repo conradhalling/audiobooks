@@ -5,6 +5,7 @@
   --color-015: hsl(210 40  15);
   --color-020: hsl(210 40  20);
   --color-025: hsl(210 40  25);
+  --color-030: hsl(210 40  30);
   --color-075: hsl(210 40  75);
   --color-080: hsl(210 40  80);
   --color-085: hsl(210 40  85);
@@ -24,60 +25,12 @@ body {
 
 h1, h2 {
   text-align: center;
+  font-family: Verdana, sans-serif;
 }
 
 p {
   max-width: 40rem;
   font-size: larger;
-}
-
-table {
-  table-layout: fixed;
-  border-collapse: collapse;
-  border: 3px solid var(--color-075);
-  line-height: 1rem;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-table > caption {
-  text-align: left;
-  font-family: Verdana;
-}
-
-tr th {
-  background-color: var(--color-085);
-}
-
-tbody > tr:nth-child(even) {
-  background-color: var(--color-090);
-}
-
-/* Don't alternate row colors for vertical tables. */
-tbody.vertical tr:nth-child(even) {
-  background-color: var(--color-095);
-}
-
-th, td {
-  border: 1px solid var(--color-075);
-  font-family: Verdana;
-  font-size: 0.75rem;
-  padding: 2px 4px;
-  max-width: 20rem;
-  vertical-align: top;
-}
-
-th.vertical {
-  text-align: left;
-}
-
-th.sortable:hover {
-  cursor: pointer;
-  background-color: var(--color-080);
-}
-
-.right {
-  text-align: right;
 }
 
 header {
@@ -109,16 +62,86 @@ header {
         padding: 5px 10px;
 
         &:hover {
-          background-color: var(--color-080);
+          background-color: var(--color-085);
         }
 
-        a {
+        a,
+        a:hover {
           color: var(--color-000);
           text-decoration: none;
         }
       }
+
+      li.logo {
+        font-size: 1.5rem;
+        margin-right: 2rem;
+
+        a {
+          color: var(--color-025);
+        }
+      }
     }
   }
+}
+
+table {
+  table-layout: fixed;
+  border-collapse: collapse;
+  border: 3px solid var(--color-075);
+  line-height: 1rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+table > caption {
+  text-align: left;
+  font-family: Verdana;
+}
+
+tr th {
+  background-color: var(--color-085);
+}
+
+tbody > tr:nth-child(even) {
+  background-color: var(--color-090);
+}
+
+/* Don't alternate row colors for vertical tables. */
+tbody.vertical tr:nth-child(even) {
+  background-color: var(--color-095);
+}
+
+th,
+td {
+  border: 1px solid var(--color-075);
+  font-family: Verdana;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  max-width: 20rem;
+  vertical-align: top;
+}
+
+th.vertical {
+  text-align: left;
+}
+
+th.sortable:hover {
+  cursor: pointer;
+  background-color: var(--color-080);
+}
+
+.right {
+  text-align: right;
+}
+
+td a,
+td a:visited {
+  color: var(--color-000);
+}
+
+td a:hover,
+td a:visited:hover {
+  color: var(--color-030);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -137,49 +160,53 @@ header {
           &:hover {
             background-color: var(--color-020);
           }
-          a {
+          a, a:hover {
             color: var(--color-100);
+          }
+        }
+
+        li.logo {
+          a, a:hover {
+            color: hsl(210 100 75);
           }
         }
       }
     }
   }
 
-  table.adaptive {
+  table {
     border: 3px solid var(--color-025);
   }
 
-  th.adaptive {
+  tr th {
     background-color: var(--color-015);
   }
 
-  thead.adaptive tr.adaptive th.sortable:hover {
-    background-color: var(--color-020);
-  }
-
-  tbody tr:nth-child(odd).adaptive {
-    background-color: var(--color-005);
-  }
-
-  tbody tr:nth-child(even).adaptive {
+  tbody > tr:nth-child(even) {
     background-color: var(--color-010);
   }
 
   /* Don't alternate row colors for vertical tables. */
-  tbody.vertical tr:nth-child(even).adaptive {
+  tbody.vertical tr:nth-child(even) {
     background-color: var(--color-005);
   }
 
-  th.adaptive,
-  td.adaptive {
+  th,
+  td {
     border: 1px solid var(--color-025);
   }
 
-  a.adaptive {
-    color: rgb(140, 180, 255);
+  th.sortable:hover {
+    background-color: var(--color-020);
   }
 
-  a:visited.adaptive {
-    color: rgb(255, 173, 255);
+  td a,
+  td a:visited {
+    color: var(--color-100);
+  }
+
+  td a:hover,
+  td a:visited:hover {
+    color: var(--color-080);
   }
 }
