@@ -38,6 +38,11 @@ tbody > tr:nth-child(even) {
   background-color: #e6e6e6;
 }
 
+/* Don't alternate row colors for vertical tables. */
+tbody.vertical tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
 th, td {
   border: 1px solid #bfbfbf;
   font-family: Verdana;
@@ -76,7 +81,6 @@ th.sortable:hover {
 
   thead.adaptive tr.adaptive th.sortable:hover {
     background-color: #4d4d4d;
-    cursor: pointer;
   }
 
   tbody tr:nth-child(odd).adaptive {
@@ -85,6 +89,11 @@ th.sortable:hover {
 
   tbody tr:nth-child(even).adaptive {
     background-color: #262626;
+  }
+
+  /* Don't alternate row colors for vertical tables. */
+  tbody.vertical tr:nth-child(even).adaptive {
+    background-color: #1a1a1a;
   }
 
   th.adaptive,

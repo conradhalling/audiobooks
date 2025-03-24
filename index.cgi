@@ -564,7 +564,7 @@ def display_book(conn, book_id):
     html += f'    <h1 class="adaptive"><cite>{book["title"]}</cite>, by {", ".join(author_strings)}</h1>'
     html += '    <h2>Book Information</h2>\n'
     html += '    <table class="adaptive">\n'
-    html += '      <tbody class="adaptive">\n'
+    html += '      <tbody class="vertical adaptive">\n'
 
     # Title
     html += '        <tr class="adaptive">\n'
