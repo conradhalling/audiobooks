@@ -331,6 +331,7 @@ def create_books_table_html(conn, books_result_set):
 
 def create_end_html():
     end_html = """\
+            </div>
           </body>
         </html>"""
     return textwrap.dedent(end_html)
@@ -409,6 +410,19 @@ def create_start_html():
             <script src="sort_table.js"></script>
           </head>
           <body>
+            <header>
+              <nav>
+                <ul>
+                  <li><a href="index.cgi">Home</a></li>
+                  <li><a href="#">Books</a></li>
+                  <li><a href="#">Authors</a></li>
+                  <li><a href="#">Narrators</a></li>
+                  <li><a href="#">About</a></li>
+                  <li><a href="#">Log In</a></li>
+                </ul>
+              </nav>
+            </header>
+            <div style="margin-top: 50px">
         """
     return textwrap.dedent(start_html)
 

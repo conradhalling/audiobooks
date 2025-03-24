@@ -1,12 +1,29 @@
 :root {
+  --color-000: hsl(210 40   0);
+  --color-005: hsl(210 40   5);
+  --color-010: hsl(210 40  10);
+  --color-015: hsl(210 40  15);
+  --color-020: hsl(210 40  20);
+  --color-025: hsl(210 40  25);
+  --color-075: hsl(210 40  75);
+  --color-080: hsl(210 40  80);
+  --color-085: hsl(210 40  85);
+  --color-090: hsl(210 40  90);
+  --color-095: hsl(210 40  95);
+  --color-100: hsl(210 40 100);
+
   font-family: Georgia, serif;
   line-height: 2rem;
-  background-color: #f2f2f2;
-  color: #000000;
+  background-color: var(--color-095);
+  color: var(--color-000);
 }
 
 body {
-  margin: 2em;
+  margin: 0rem 2rem 2rem 2rem;
+}
+
+h1, h2 {
+  text-align: center;
 }
 
 p {
@@ -17,8 +34,10 @@ p {
 table {
   table-layout: fixed;
   border-collapse: collapse;
-  border: 3px solid #bfbfbf;
+  border: 3px solid var(--color-075);
   line-height: 1rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 table > caption {
@@ -27,26 +46,22 @@ table > caption {
 }
 
 tr th {
-  background-color: #d9d9d9;
-}
-
-tbody > tr:nth-child(odd) {
-  background-color: #f2f2f2;
+  background-color: var(--color-085);
 }
 
 tbody > tr:nth-child(even) {
-  background-color: #e6e6e6;
+  background-color: var(--color-090);
 }
 
 /* Don't alternate row colors for vertical tables. */
 tbody.vertical tr:nth-child(even) {
-  background-color: #f2f2f2;
+  background-color: var(--color-095);
 }
 
 th, td {
-  border: 1px solid #bfbfbf;
+  border: 1px solid var(--color-075);
   font-family: Verdana;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   padding: 2px 4px;
   max-width: 20rem;
   vertical-align: top;
@@ -58,47 +73,106 @@ th.vertical {
 
 th.sortable:hover {
   cursor: pointer;
-  background-color: #bfbfbf;
+  background-color: var(--color-080);
 }
 
 .right {
   text-align: right;
 }
 
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: var(--color-095);
+  border-bottom: 1px solid var(--color-090);
+
+  nav {
+    display: flex;
+    width: fit-content;
+    background-color: var(--color-095);
+    margin-left: auto;
+    margin-right: auto;
+
+    ul {
+      font-family: Verdana, sans-serif;
+      display: flex;
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+
+      li {
+        /* margin: 0 10px; */
+        margin: 0;
+        padding: 5px 10px;
+
+        &:hover {
+          background-color: var(--color-080);
+        }
+
+        a {
+          color: var(--color-000);
+          text-decoration: none;
+        }
+      }
+    }
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    background-color: #1a1a1a;
-    color: #ffffff;
+    background-color: var(--color-005);
+    color: var(--color-100);
+  }
+
+  header {
+    background-color: var(--color-005);
+    border-bottom: 1px solid var(--color-010);
+    nav {
+      background-color: var(--color-005);
+      ul {
+        li {
+          &:hover {
+            background-color: var(--color-020);
+          }
+          a {
+            color: var(--color-100);
+          }
+        }
+      }
+    }
   }
 
   table.adaptive {
-    border: 3px solid #404040;
+    border: 3px solid var(--color-025);
   }
 
-  tr.adaptive th.adaptive {
-    background-color: #333333;
+  th.adaptive {
+    background-color: var(--color-015);
   }
 
   thead.adaptive tr.adaptive th.sortable:hover {
-    background-color: #4d4d4d;
+    background-color: var(--color-020);
   }
 
   tbody tr:nth-child(odd).adaptive {
-    background-color: #1a1a1a;
+    background-color: var(--color-005);
   }
 
   tbody tr:nth-child(even).adaptive {
-    background-color: #262626;
+    background-color: var(--color-010);
   }
 
   /* Don't alternate row colors for vertical tables. */
   tbody.vertical tr:nth-child(even).adaptive {
-    background-color: #1a1a1a;
+    background-color: var(--color-005);
   }
 
   th.adaptive,
   td.adaptive {
-    border: 1px solid #404040;
+    border: 1px solid var(--color-025);
   }
 
   a.adaptive {
