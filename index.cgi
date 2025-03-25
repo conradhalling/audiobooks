@@ -82,6 +82,11 @@ def select_all_books(conn):
             tbl_book.id
         FROM
             tbl_book
+            INNER JOIN tbl_acquisition
+                ON tbl_book.id = tbl_acquisition.book_id
+        ORDER BY
+            tbl_acquisition.acquisition_date DESC,
+            tbl_book.title ASC
     """
     cur = conn.execute(sql_select_all_books)
     result_set = cur.fetchall()
@@ -92,7 +97,8 @@ def select_all_books(conn):
 def select_author_name(conn, author_id):
     sql_select_author = """
         SELECT
-            tbl_author.name
+            tbl_author.surname,
+            tbl_author.forename
         FROM
             tbl_author
         WHERE
@@ -101,7 +107,7 @@ def select_author_name(conn, author_id):
     cur = conn.execute(sql_select_author, (author_id,))
     result_set = cur.fetchone()
     cur.close()
-    author_name = result_set[0]
+    author_name = result_set[1] + " " + result_set[0]
     return author_name
 
 
@@ -109,7 +115,8 @@ def select_authors_for_book(conn, book_id):
     sql_select_authors_for_book = """
         SELECT
             tbl_author.id,
-            tbl_author.name
+            tbl_author.surname,
+            tbl_author.forename
         FROM
             tbl_book_author
             INNER JOIN tbl_author
@@ -267,16 +274,23 @@ def create_authors_td_html(conn, book_id, rowspan_attr):
     author_strings = []
     first_author = True
     for row in data_rows:
-        (author_id, author_name) = row
+        (author_id, author_surname, author_forename) = row
+        # author_surname can be None.
+        if author_surname is None:
+            author_name = author_forename
+        else:
+            author_name = author_forename + " " + author_surname
         if first_author:
             # Create a sorting key that starts with the author's last name.
-            first_author_name_upper = author_name.upper()
-            first_author_names = first_author_name_upper.split()
-            first_author_names_key = " ".join([first_author_names[-1]] + first_author_names[:len(first_author_names) - 1])
+            if author_surname is None:
+                sort_key_author_name = author_forename
+            else:
+                sort_key_author_name = author_surname + " " + author_forename
+            sort_key_author_name = sort_key_author_name.upper()
             first_author = False
         author_string = f'<a href="?author_id={author_id}">{author_name}</a>'
         author_strings.append(author_string)
-    html = f'          <td data-sortkey="{first_author_names_key}"{rowspan_attr}>{", ".join(author_strings)}</td>\n'
+    html = f'          <td data-sortkey="{sort_key_author_name}"{rowspan_attr}>{", ".join(author_strings)}</td>\n'
     return html
 
 
@@ -419,6 +433,7 @@ def create_start_html():
                   <li><a href="#">Narrators</a></li>
                   <li><a href="#">About</a></li>
                   <li><a href="#">Log In</a></li>
+                  <li class="blog"><a href="/blog/">Blog</a></li>
                 </ul>
               </nav>
             </header>
@@ -448,10 +463,11 @@ def get_book_data(conn, book_id):
     authors_rs = select_authors_for_book(conn, book_id)
     authors_list = []
     for row in authors_rs:
-        (author_id, author_name) = row
+        (author_id, author_surname, author_forename) = row
         author_dict = {
             "author_id": author_id,
-            "author_name": author_name,
+            "author_surname": author_surname,
+            "author_forename": author_forename,
         }
         authors_list.append(author_dict)
     book_dict["authors"] = authors_list
@@ -556,9 +572,11 @@ def display_book(conn, book_id):
     author_html_strings = []
     for author_dict in book["authors"]:
         author_id = author_dict["author_id"]
-        author_name = author_dict["author_name"]
-        author_string = f'<a href="?author_id={author_id}">{author_name}</a>'
-        author_html_strings.append(author_string)
+        author_surname = author_dict["author_surname"]
+        author_forename = author_dict["author_forename"]
+        author_name = f"{author_forename} {author_surname}"
+        author_html_string = f'<a href="?author_id={author_id}">{author_name}</a>'
+        author_html_strings.append(author_html_string)
         author_strings.append(author_name)
     
     translator_html_strings = []

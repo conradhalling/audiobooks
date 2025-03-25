@@ -46,7 +46,8 @@ def save_data(username, csv_file):
         for csv_row in csv_reader:
             (
                 csv_title,
-                csv_authors,
+                csv_author_surname,
+                csv_author_forename,
                 csv_translators,
                 csv_narrators,
                 csv_pub_date,
@@ -63,8 +64,9 @@ def save_data(username, csv_file):
                 csv_reread,
                 csv_comments,
             ) = csv_row
-            logger.debug(f"csv_authors: '{csv_authors}'")
-            author_ids = save_authors(csv_authors)
+            logger.debug(f"csv_author_surname: '{csv_author_surname}'")
+            logger.debug(f"csv_author_forename: '{csv_author_forename}'")
+            author_id = save_author(csv_author_surname, csv_author_forename)
 
             logger.debug(f"csv_translators: '{csv_translators}'")
             translator_ids = save_translators(csv_translators)
@@ -85,8 +87,7 @@ def save_data(username, csv_file):
                 csv_minutes
             )
 
-            for author_id in author_ids:
-                db.book_author.save(book_id, author_id)
+            db.book_author.save(book_id, author_id)
             
             for translator_id in translator_ids:
                 db.book_translator.save(book_id, translator_id)
@@ -159,23 +160,22 @@ def save_acquisition(
         discontinued, audible_credits, price)
 
 
-def save_authors(authors_str):
+def save_author(csv_author_surname, csv_author_forename):
     """
-    Multiple authors are separated by "&".
-    No effort is made at this time to break author names into
-    first name, middle name, and last name.
+    This function accepts a single author. Multiple authors for a book must
+    be entered manually (17 books from audible.com).
     """
-    logger.debug(f"authors_str: '{authors_str}'")
-    authors = authors_str.split(sep="&")
-    logger.debug(f"authors: {authors}")
-    author_ids = []
-    for author in authors:
-        author = author.strip()
-        if author != "":
-            author_id = db.author.save(author)
-            author_ids.append(author_id)
-    logger.debug(f"author ids: {author_ids}")
-    return author_ids
+    logger.debug(f"author_surname: '{csv_author_surname}'")
+    logger.debug(f"author_forename: '{csv_author_forename}'")
+    surname = csv_author_surname.strip()
+    forename = csv_author_forename.strip()
+    if surname == "":
+        surname = None
+    if forename == "":
+        raise ValueError(f"The author's forename may not be empty: '{forename}' '{surname}'")
+    author_id = db.author.save(surname, forename)
+    logger.debug(f"author ID: {author_id}")
+    return author_id
 
 
 def save_book(title, book_pub_date, audio_pub_date, hours, minutes):
