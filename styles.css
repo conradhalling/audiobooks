@@ -83,8 +83,8 @@ header {
         font-size: 1.5rem;
         margin-right: 2rem;
 
-        a {
-          color: var(--color-025);
+        a, a:hover {
+          color: hsl(210 40 25);
         }
       }
 
@@ -95,10 +95,20 @@ header {
   }
 }
 
+main {
+  margin-left: auto;
+  margin-right: auto;
+  width: fit-content;
+}
+
+div.table-filtered {
+  font-family: Verdana, sans-serif;
+}
+
 table {
   table-layout: fixed;
   border-collapse: collapse;
-  border: 3px solid var(--color-075);
+  border: 3px solid var(--color-090);
   line-height: 1rem;
   margin-left: auto;
   margin-right: auto;
@@ -109,12 +119,31 @@ table > caption {
   font-family: Verdana;
 }
 
+/*
+  Filter rows of table#books.
+*/
+input#new:checked~table#books tbody tr.new {
+  display: table-row;
+}
+
+input#started:checked~table#books tbody tr.started {
+  display: table-row;
+}
+
+input#finished:checked~table#books tbody tr.finished {
+  display: table-row;
+}
+
+table#books tbody tr {
+  display: none;
+}
+
 tr th {
   background-color: var(--color-085);
 }
 
 tbody > tr:nth-child(even) {
-  background-color: var(--color-090);
+background-color: hsl(210 40  92);
 }
 
 /* Don't alternate row colors for vertical tables. */
@@ -124,10 +153,10 @@ tbody.vertical tr:nth-child(even) {
 
 th,
 td {
-  border: 1px solid var(--color-075);
+  border: 1px solid var(--color-090);
   font-family: Verdana;
   font-size: 0.75rem;
-  padding: 2px 4px;
+  padding: 3px 6px;
   max-width: 20rem;
   vertical-align: top;
 }
@@ -148,28 +177,31 @@ th.sortable:hover {
 td a,
 td a:visited {
   color: var(--color-000);
+  text-decoration: none;
 }
 
 td a:hover,
 td a:visited:hover {
   color: var(--color-030);
+  text-decoration: underline;
 }
+
 
 @media (prefers-color-scheme: dark) {
   :root {
-    background-color: var(--color-005);
+    background-color: var(--color-010);
     color: var(--color-090);
   }
 
   header {
-    background-color: var(--color-005);
-    border-bottom: 1px solid var(--color-010);
+    background-color: var(--color-010);
+    border-bottom: 1px solid var(--color-015);
     nav {
-      background-color: var(--color-005);
+      background-color: var(--color-010);
       ul {
         li {
           &:hover {
-            background-color: var(--color-020);
+            background-color: var(--color-025);
           }
           a, a:hover {
             color: var(--color-090);
@@ -178,7 +210,7 @@ td a:visited:hover {
 
         li.logo {
           a, a:hover {
-            color: hsl(210 100 75);
+            color: hsl(210 40 75);
           }
         }
       }
@@ -186,7 +218,7 @@ td a:visited:hover {
   }
 
   table {
-    border: 3px solid var(--color-025);
+    border: 3px solid var(--color-015);
   }
 
   tr th {
@@ -194,30 +226,33 @@ td a:visited:hover {
   }
 
   tbody > tr:nth-child(even) {
-    background-color: var(--color-010);
+    /* background-color: var(--color-015); */
+    background-color: hsl(210 40  12);
   }
 
   /* Don't alternate row colors for vertical tables. */
   tbody.vertical tr:nth-child(even) {
-    background-color: var(--color-005);
+    background-color: var(--color-010);
   }
 
   th,
   td {
-    border: 1px solid var(--color-025);
+    border: 1px solid var(--color-015);
   }
 
   th.sortable:hover {
-    background-color: var(--color-020);
+    background-color: var(--color-025);
   }
 
   td a,
   td a:visited {
     color: var(--color-090);
+    text-decoration: none;
   }
 
   td a:hover,
   td a:visited:hover {
-    color: var(--color-080);
+    color: var(--color-075);
+    text-decoration: underline;
   }
 }

@@ -228,9 +228,9 @@ def select_notes_for_book(conn, book_id):
             tbl_note
             INNER JOIN tbl_user
                 ON tbl_note.user_id = tbl_user.id
-            INNER JOIN tbl_status
+            LEFT OUTER JOIN tbl_status
                 ON tbl_note.status_id = tbl_status.id
-            INNER JOIN tbl_rating
+            LEFT OUTER JOIN tbl_rating
                 ON tbl_note.rating_id = tbl_rating.id
         WHERE
             tbl_note.book_id = ?
@@ -305,7 +305,7 @@ def create_books_table_html(conn, books_result_set):
     html += '      <thead>\n'
     html += '        <tr>\n'
     for col_name in ["Title", "Authors", "Translators", "Narrators", "Book Publication Date", "Audiobook Publication Date", "Length"]:
-        html += f'          <th class="adaptive sortable">{col_name} <span>⭥</span></th>\n'
+        html += f'          <th class="sortable">{col_name} <span>⭥</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody>\n'
@@ -336,7 +336,7 @@ def create_books_table_html(conn, books_result_set):
         html += '          <td></td>\n' # narrators
         html += f'          <td>{book_pub_date if book_pub_date is not None else ""}</td>\n'
         html += f'          <td>{audio_pub_date if audio_pub_date is not None else ""}</td>\n'
-        html += f'          <td data-sortkey="{data_length}" class="adaptive right">{length}</td>\n'
+        html += f'          <td data-sortkey="{data_length}" class="right">{length}</td>\n'
         html += '        </tr>\n'
     html += '      </tbody>\n'
     html += '    </table>\n'
@@ -345,7 +345,7 @@ def create_books_table_html(conn, books_result_set):
 
 def create_end_html():
     end_html = """\
-            </div>
+            </main>
           </body>
         </html>"""
     return textwrap.dedent(end_html)
@@ -353,18 +353,25 @@ def create_end_html():
 
 def create_finished_books_table_html(conn, books_result_set):
     """
-    There can be multiple authors of a book, where each author will have a link
-    in the table. A book can be finished more than once. The easiest way to deal
-    with these is to use multiple queries.
+    This is actually *all* books, now.
     
     "⭥" is "\u2B65" or "&#x2B65;".
     """
     th_tool_tip = "Click this header to sort the table by the values in this column."
-    html = '    <table>\n'
+    html = '    <div class="table-filtered">'
+    html += '    <strong>Status Filter:</strong>\n'
+    html += '    <input type="checkbox" id="new" title="Click this checkbox to toggle the visibility of new audiobooks." checked>\n'
+    html += '    <label for="new" title="Click this checkbox to toggle the visibility of new audiobooks.">New</label>\n'
+    html += '    <input type="checkbox" id="started" title="Click this checkbox to toggle the visibility of started audiobooks." checked>\n'
+    html += '    <label for="started" title="Click this checkbox to toggle the visibility of started audiobooks.">Started</label>\n'
+    html += '    <input type="checkbox" id="finished" title="Click this checkbox to toggle the visibility of finished audiobooks." checked>\n'
+    html += '    <label for="finished" title="Click this checkbox to toggle the visibility of finished audiobooks.">Finished</label>\n'
+
+    html += '    <table id="books">\n'
     html += '      <thead>\n'
     html += '        <tr>\n'
-    for col_name in ["Title", "Authors", "Length", "Acquisition Date", "Finished Date", "Rating"]:
-        html += f'          <th class="adaptive sortable" title="{th_tool_tip}">{col_name} <span>⭥</span></th>\n'
+    for col_name in ["Title", "Authors", "Length", "Acquisition Date", "Status", "Finished Date", "Rating"]:
+        html += f'          <th class="sortable" title="{th_tool_tip}">{col_name} <span>⭥</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody>\n'
@@ -394,22 +401,34 @@ def create_finished_books_table_html(conn, books_result_set):
         # Select the acquisition date.
         acquisition_date = select_acquisition_date(conn, book_id)
 
-        # Select the finished date and rating.
-        rs = select_finished_dates(conn, book_id)
+        # Select the status, finished date (may be null), rating stars (may
+        # be null), and rating description. Create strings for the HTML output.
+        rs = select_notes_for_book(conn, book_id)
+        status = rs[0][1]
+        finish_date = rs[0][2]
+        rating_stars = rs[0][3]
+        rating_description = rs[0][4]
+        rating = ""
+        if finish_date is None:
+            finish_date = ""
+        if rating_stars is not None:
+            rating = str(rating_stars) + " " + rating_description
 
-        # Create table rows only for finished books, reporting only the first finished date.
+        # Create table rows for all books, reporting only the first finished date.
         if len(rs) > 0:
-            html += '        <tr>\n'
+            html += f'        <tr class="{status.lower()}">\n'
             html += f'          <td data-sortkey="{data_title}"><a href="?book_id={book_id}">{title}</a></td>\n'
             html += create_authors_td_html(conn, book_id, "")
-            html += f'          <td data-sortkey="{data_length}" class="adaptive right">{length}</td>\n'
+            html += f'          <td data-sortkey="{data_length}" class="right">{length}</td>\n'
             html += f'          <td>{acquisition_date}</td>\n'
-            html += f'          <td>{rs[0][0]}</td>\n'
-            html += f'          <td>{rs[0][1]}</td>\n'
+            html += f'          <td>{status}</td>\n'
+            html += f'          <td>{finish_date}</td>\n'
+            html += f'          <td>{rating}</td>\n'
             html += '        </tr>\n'
 
     html += '      </tbody>\n'
     html += '    </table>\n'
+    html += '    </div>\n'
     return html
 
 
@@ -428,7 +447,7 @@ def create_start_html():
               <nav>
                 <ul>
                   <li class="logo"><a href="index.cgi">🎧<em>Audio</em>books📚</a></li>
-                  <li><a href="#">Books</a></li>
+                  <li><a href="index.cgi">Audiobooks</a></li>
                   <li><a href="#">Authors</a></li>
                   <li><a href="#">Narrators</a></li>
                   <li><a href="#">About</a></li>
@@ -437,7 +456,7 @@ def create_start_html():
                 </ul>
               </nav>
             </header>
-            <div style="margin-top: 50px">
+            <main style="margin-top: 50px">
         """
     return textwrap.dedent(start_html)
 
@@ -596,91 +615,100 @@ def display_book(conn, book_id):
     html += f'    <h1><cite>{book["title"]}</cite>, by {", ".join(author_strings)}</h1>'
     html += '    <h2>Book Information</h2>\n'
     html += '    <table>\n'
-    html += '      <tbody class="vertical adaptive">\n'
+    html += '      <tbody class="vertical">\n'
 
     # Title
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Title</th>\n'
+    html += '          <th class="vertical">Title</th>\n'
     html += f'          <td><cite>{book["title"]}</cite></td>\n'
     html += '        </tr>\n'
 
     # Authors
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Authors</th>\n'
+    html += '          <th class="vertical">Author{}</th>\n'.format(
+        "s" if len(author_strings) > 1 else "")
     html += f'          <td>{", ".join(author_html_strings)}</td>\n'
     html += '        </tr>\n'
 
     # Length
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Length (hr:min)</th>\n'
+    html += '          <th class="vertical">Length (hr:min)</th>\n'
     html += f'          <td>{length}</td>\n'
     html += '        </tr>\n'
 
     # Translators
-    html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Translators</th>\n'
-    html += f'          <td>{", ".join(translator_html_strings)}</td>\n'
-    html += '        </tr>\n'
+    if len(translator_html_strings) > 0:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Translator{}</th>\n'.format(
+            "s" if len(translator_html_strings) > 1 else "")
+        html += f'          <td>{", ".join(translator_html_strings)}</td>\n'
+        html += '        </tr>\n'
 
     # Narrators
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Narraators</th>\n'
+    html += '          <th class="vertical">Narrator{}</th>\n'.format(
+        "s" if len(narrator_html_strings) != 1 else "")
     html += f'          <td>{", ".join(narrator_html_strings)}</td>\n'
     html += '        </tr>\n'
 
     # Book Pub. Date
-    html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Book Pub. Date</th>\n'
-    html += f'          <td>{book_pub_date}</td>\n'
-    html += '        </tr>\n'
+    if book_pub_date:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Book Pub. Date</th>\n'
+        html += f'          <td>{book_pub_date}</td>\n'
+        html += '        </tr>\n'
 
     # Audio Pub. Date
-    html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Audio Pub. Date</th>\n'
-    html += f'          <td>{audio_pub_date}</td>\n'
-    html += '        </tr>\n'
+    if audio_pub_date:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Audio Pub. Date</th>\n'
+        html += f'          <td>{audio_pub_date}</td>\n'
+        html += '        </tr>\n'
 
     # Acquired By
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Acquired By</th>\n'
+    html += '          <th class="vertical">Acquired By</th>\n'
     html += f'          <td>{book["acquisition"]["username"]}</td>\n'
     html += '        </tr>\n'
 
     # Vendor
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Vendor</th>\n'
+    html += '          <th class="vertical">Vendor</th>\n'
     html += f'          <td>{book["acquisition"]["vendor_name"]}</td>\n'
     html += '        </tr>\n'
 
     # Acquisition Type
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Acquisition Type</th>\n'
+    html += '          <th class="vertical">Acquisition Type</th>\n'
     html += f'          <td>{book["acquisition"]["acquisition_type"]}</td>\n'
     html += '        </tr>\n'
 
     # Acquisition Date
     html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Acquisition Date</th>\n'
+    html += '          <th class="vertical">Acquisition Date</th>\n'
     html += f'          <td>{book["acquisition"]["acquisition_date"]}</td>\n'
     html += '        </tr>\n'
 
     # Discontinued
-    html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Discontinued</th>\n'
-    html += f'          <td>{discontinued}</td>\n'
-    html += '        </tr>\n'
+    if discontinued:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Discontinued</th>\n'
+        html += f'          <td>{discontinued}</td>\n'
+        html += '        </tr>\n'
 
-    # Acquisition Date
-    html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Audible Credits</th>\n'
-    html += f'          <td>{"" if book["acquisition"]["audible_credits"] is None else book["acquisition"]["audible_credits"]}</td>\n'
-    html += '        </tr>\n'
+    # Audible Credits
+    if book["acquisition"]["audible_credits"] is not None:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Audible Credits</th>\n'
+        html += f'          <td>{book["acquisition"]["audible_credits"]}</td>\n'
+        html += '        </tr>\n'
 
     # Price (Dollars)
-    html += '        <tr>\n'
-    html += '          <th class="adaptive vertical">Price</th>\n'
-    html += f'          <td>{price_in_dollars}</td>\n'
-    html += '        </tr>\n'
+    if price_in_dollars:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Price</th>\n'
+        html += f'          <td>{price_in_dollars}</td>\n'
+        html += '        </tr>\n'
 
     html += '      </tbody>\n'
     html += '    </table>\n'
@@ -719,7 +747,7 @@ def display_finished_books(conn):
     print("Content-Type: text/html\r\n\r\n", end="")
     all_books_rs = select_all_books(conn)
     html = create_start_html()
-    html += '    <h1>Finished Audiobooks</h1>\n'
+    html += '    <h1>Audiobooks</h1>\n'
     html += create_finished_books_table_html(conn, all_books_rs)
     html += create_end_html()
     print(html)
