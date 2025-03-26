@@ -172,31 +172,6 @@ def select_books_for_author(conn, author_id):
     return result_set
 
 
-def select_finished_dates(conn, book_id):
-    sql_select_finished_dates = """
-        SELECT DISTINCT
-            tbl_note.finish_date,
-            tbl_rating.stars || ' ' || tbl_rating.description AS rating 
-        FROM
-            tbl_note
-            INNER JOIN tbl_rating
-                ON tbl_note.rating_id = tbl_rating.id
-            INNER JOIN tbl_status
-                ON tbl_note.status_id = tbl_status.id
-                AND tbl_status.name = 'Finished'
-        WHERE
-            tbl_note.book_id = ?
-            AND tbl_note.finish_date IS NOT NULL
-            AND tbl_note.rating_id IS NOT NULL
-        ORDER BY
-            tbl_note.finish_date ASC
-    """
-    cur = conn.execute(sql_select_finished_dates, (book_id,))
-    result_set = cur.fetchall()
-    cur.close()
-    return result_set
-
-
 def select_narrators_for_book(conn, book_id):
     sql_select_narrators_for_book = """
         SELECT
@@ -296,10 +271,7 @@ def create_authors_td_html(conn, book_id, rowspan_attr):
 
 def create_books_table_html(conn, books_result_set):
     """
-    There can be multiple authors of a book, where each author will have a
-    link in the table. The situation is identical for translators and
-    narrators. The easiest way to deal with this is to use multiple
-    queries.
+    This is called by the page that presents author information.
     """
     html = '    <table>\n'
     html += '      <thead>\n'
@@ -351,14 +323,14 @@ def create_end_html():
     return textwrap.dedent(end_html)
 
 
-def create_finished_books_table_html(conn, books_result_set):
+def create_all_books_table_html(conn, books_result_set):
     """
-    This is actually *all* books, now.
+    Create the HTML for all books.
     
     "⭥" is "\u2B65" or "&#x2B65;".
     """
-    th_tool_tip = "Click this header to sort the table by the values in this column."
-    html = '    <div class="table-filtered">'
+    html = '    <h1>Audiobooks</h1>\n'
+    html += '    <div class="table-filtered">'
     html += '    <strong>Status Filter:</strong>\n'
     html += '    <input type="checkbox" id="new" title="Click this checkbox to toggle the visibility of new audiobooks." checked>\n'
     html += '    <label for="new" title="Click this checkbox to toggle the visibility of new audiobooks.">New</label>\n'
@@ -366,8 +338,22 @@ def create_finished_books_table_html(conn, books_result_set):
     html += '    <label for="started" title="Click this checkbox to toggle the visibility of started audiobooks.">Started</label>\n'
     html += '    <input type="checkbox" id="finished" title="Click this checkbox to toggle the visibility of finished audiobooks." checked>\n'
     html += '    <label for="finished" title="Click this checkbox to toggle the visibility of finished audiobooks.">Finished</label>\n'
+    html += create_sortable_books_table_html(conn, books_result_set, filterable=True)
+    html += '    </div>\n'
+    return html
 
-    html += '    <table id="books">\n'
+
+def create_sortable_books_table_html(conn, books_result_set, filterable=False):
+    """
+    The all books table is filterable.
+    The books table associated with an author is not filterable.
+    """
+    th_tool_tip = "Click this header to sort the table by the values in this column."
+    html = ''
+    if filterable:
+        html += '    <table class="filterable">\n'
+    else:
+        html += '    <table>\n'
     html += '      <thead>\n'
     html += '        <tr>\n'
     for col_name in ["Title", "Authors", "Length", "Acquisition Date", "Status", "Finished Date", "Rating"]:
@@ -393,7 +379,7 @@ def create_finished_books_table_html(conn, books_result_set):
             data_title = title[4:]
         else:
             data_title = title
-        data_title = data_title.upper()
+        title_sortkey = data_title.upper()
 
         # Convert hours and minutes to an hh:mm string.
         length = f"{hours}:{minutes:02d}"
@@ -417,7 +403,7 @@ def create_finished_books_table_html(conn, books_result_set):
         # Create table rows for all books, reporting only the first finished date.
         if len(rs) > 0:
             html += f'        <tr class="{status.lower()}">\n'
-            html += f'          <td data-sortkey="{data_title}"><a href="?book_id={book_id}">{title}</a></td>\n'
+            html += f'          <td data-sortkey="{title_sortkey}"><a href="?book_id={book_id}">{title}</a></td>\n'
             html += create_authors_td_html(conn, book_id, "")
             html += f'          <td data-sortkey="{data_length}" class="right">{length}</td>\n'
             html += f'          <td>{acquisition_date}</td>\n'
@@ -428,7 +414,6 @@ def create_finished_books_table_html(conn, books_result_set):
 
     html += '      </tbody>\n'
     html += '    </table>\n'
-    html += '    </div>\n'
     return html
 
 
@@ -552,24 +537,13 @@ def get_book_data(conn, book_id):
 
 # Display code.
 
-
-def display_all_books(conn):
-    print("Content-Type: text/html\r\n\r\n", end="")
-    all_books_rs = select_all_books(conn)
-    html = create_start_html()
-    html += '    <h1>All Audiobooks</h1>\n'
-    html += create_books_table_html(conn, all_books_rs)
-    html += create_end_html()
-    print(html)
-
-
 def display_author(conn, author_id):
     print("Content-Type: text/html\r\n\r\n", end="")
     html = create_start_html()
     author_name = select_author_name(conn, author_id)
     html += f'    <h1>Audiobooks by {author_name}</h1>\n'
     books_for_author_rs = select_books_for_author(conn, author_id)
-    html += create_books_table_html(conn, books_for_author_rs)
+    html += create_sortable_books_table_html(conn, books_for_author_rs)
     html += create_end_html()
     print(html)
 
@@ -740,15 +714,14 @@ def display_book(conn, book_id):
     print(html)
 
 
-def display_finished_books(conn):
+def display_all_books(conn):
     """
-        title, authors, length, acquisition_date, finish_date, rating
+    title, authors, length, acquisition_date, status, finish_date, rating.
     """
     print("Content-Type: text/html\r\n\r\n", end="")
     all_books_rs = select_all_books(conn)
     html = create_start_html()
-    html += '    <h1>Audiobooks</h1>\n'
-    html += create_finished_books_table_html(conn, all_books_rs)
+    html += create_all_books_table_html(conn, all_books_rs)
     html += create_end_html()
     print(html)
 
@@ -761,7 +734,7 @@ def main():
     elif "book_id" in fs:
         display_book(conn, fs["book_id"].value)
     else:
-        display_finished_books(conn)
+        display_all_books(conn)
     conn.close()
 
 

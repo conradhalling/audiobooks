@@ -120,21 +120,21 @@ table > caption {
 }
 
 /*
-  Filter rows of table#books.
+  Filter rows of table.filterable:
 */
-input#new:checked~table#books tbody tr.new {
+input#new:checked~table.filterable tbody tr.new {
   display: table-row;
 }
 
-input#started:checked~table#books tbody tr.started {
+input#started:checked~table.filterable tbody tr.started {
   display: table-row;
 }
 
-input#finished:checked~table#books tbody tr.finished {
+input#finished:checked~table.filterable tbody tr.finished {
   display: table-row;
 }
 
-table#books tbody tr {
+table.filterable tbody tr {
   display: none;
 }
 
