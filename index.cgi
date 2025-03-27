@@ -14,9 +14,8 @@ import textwrap
 from dotenv import load_dotenv
 load_dotenv()
 
-##########
 
-# Database code.
+########## Database code
 
 
 def connect():
@@ -130,6 +129,24 @@ def select_authors_for_book(conn, book_id):
     return result_set
 
 
+def select_authors(conn):
+    select_authors_sql = """
+        SELECT
+            tbl_author.id,
+            tbl_author.surname,
+            tbl_author.forename
+        FROM
+            tbl_author
+        ORDER BY
+            UPPER(tbl_author.surname),
+            UPPER(tbl_author.forename)
+    """
+    cur = conn.execute(select_authors_sql)
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
 def select_book(conn, book_id):
     sql_select_book = """
         SELECT
@@ -236,91 +253,152 @@ def select_translators_for_book(conn, book_id):
     return result_set
 
 
-############ HTML generation code.
+########## Data conversion functions
 
 
-def create_authors_td_html(conn, book_id, rowspan_attr):
+def get_audiobook_length(hours, minutes):
     """
-    Given a book_id, select the authors and format them with links in a
-    td element. When there are multiple authors, use the first author as
-    the sort key.
+    Return a string containing hours and minutes as "hh:mm".
     """
-    data_rows = select_authors_for_book(conn, book_id)
-    author_strings = []
-    first_author = True
-    for row in data_rows:
-        (author_id, author_surname, author_forename) = row
-        # author_surname can be None.
-        if author_surname is None:
-            author_name = author_forename
-        else:
-            author_name = author_forename + " " + author_surname
-        if first_author:
-            # Create a sorting key that starts with the author's last name.
-            if author_surname is None:
-                sort_key_author_name = author_forename
-            else:
-                sort_key_author_name = author_surname + " " + author_forename
-            sort_key_author_name = sort_key_author_name.upper()
-            first_author = False
-        author_string = f'<a href="?author_id={author_id}">{author_name}</a>'
-        author_strings.append(author_string)
-    html = f'          <td data-sortkey="{sort_key_author_name}"{rowspan_attr}>{", ".join(author_strings)}</td>\n'
-    return html
+    length = f"{hours}:{minutes:02d}"
+    return length
 
 
-def create_books_table_html(conn, books_result_set):
+def get_author_name(surname, forename):
     """
-    This is called by the page that presents author information.
+    Convert the author's surname and forename into the author's full name.
+    If surname is None (e.g., for Aeschylus or Homer), the author's full name
+    is the forename.
     """
-    html = '    <table>\n'
+    if surname is None:
+        name = forename
+    else:
+        name = forename + " " + surname
+    return name
+
+
+def get_author_name_sort_key(surname, forename):
+    """
+    Convert the author's surname and forename into a case-independent sort key.
+    """
+    if surname is None:
+        name = forename
+    else:
+        name = surname + " " + forename
+    sort_key = name.upper()
+    return sort_key
+
+
+def get_rating(rating_stars, rating_description):
+    """
+    Return a rating string that is a combination of the rating_stars
+    and rating_description values. Return an empty string if these
+    are None.
+    """
+    rating = ""
+    if rating_stars is not None:
+        rating = str(rating_stars) + " " + rating_description
+    return rating
+
+
+def get_title_sort_key(title):
+    """
+    Return a case-insensitive sort key for the title by removing "The", "A",
+    or "An" from the beginning of the title and converting the result to
+    an uppercase string.
+    """
+    if title.startswith("A "):
+        title_sort_key = title[2:]
+    elif title.startswith("An "):
+        title_sort_key = title[3:]
+    elif title.startswith("The "):
+        title_sort_key = title[4:]
+    else:
+        title_sort_key = title
+    title_sort_key = title_sort_key.upper()
+    return title_sort_key
+
+
+########## HTML generation code
+
+
+def create_all_authors_table_html(conn):
+    # Get authors' forenames and surnames and combine them into a
+    # case-dependent sort key and a full name.
+    authors_result_set = select_authors(conn)
+    name_list = []
+    for row in authors_result_set:
+        (author_id, surname, forename) = row
+        author_name = get_author_name(surname, forename)
+        author_name_sort_key = get_author_name_sort_key(surname, forename)
+        name_list.append([author_id, author_name, author_name_sort_key])
+    # Sort the list of lists.
+    sorted_names_list = sorted(name_list, key=lambda attrs: attrs[2])
+
+    html = ''
+    html += '    <h1>Authors</h1>\n'
+    html += '    <table>\n'
     html += '      <thead>\n'
     html += '        <tr>\n'
-    for col_name in ["Title", "Authors", "Translators", "Narrators", "Book Publication Date", "Audiobook Publication Date", "Length"]:
-        html += f'          <th class="sortable">{col_name} <span>⭥</span></th>\n'
+    html += '          <th>Author</th>\n'
+    html += '          <th>Title</th>\n'
+    html += '          <th>Authors</th>\n'
+    html += '          <th>Length</th>\n'
+    html += '          <th>Acquisition Date</th>\n'
+    html += '          <th>Status</th>\n'
+    html += '          <th>Finish Date</th>\n'
+    html += '          <th>Rating</th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody>\n'
+    for row in sorted_names_list:
+        (author_id, author_name, sort_key) = row
+        books_rs = select_books_for_author(conn, author_id)
+        row_span = len(books_rs)
+        row_span_str = ""
+        if row_span > 1:
+            row_span_str = f' rowspan="{row_span}"'
+        first_tr = True
 
-    for row in books_result_set:
-        (title, book_pub_date, audio_pub_date, hours, minutes, book_id) = row
+        # Create a sorted list of book attributes.
+        books_list = []
+        for book_row in books_rs:
+            (title, pub_date, audio_pub_date, hours, minutes, book_id) = book_row
+            title_sort_key = get_title_sort_key(title)
+            length = get_audiobook_length(hours, minutes)
+            books_list.append((title, title_sort_key, pub_date, audio_pub_date, length, book_id))
+        sorted_books_list = sorted(books_list, key=lambda tup: tup[1])
 
-        # Create keys for sorting by length or title.
-        data_length = 60 * int(hours) + int(minutes)
-
-        if title.startswith("A "):
-            data_title = title[2:]
-        elif title.startswith("An "):
-            data_title = title[3:]
-        elif title.startswith("The "):
-            data_title = title[4:]
-        else:
-            data_title = title
-        data_title = data_title.upper()
-        
-        # Convert hours and minutes to an hh:mm string.
-        length = f"{hours}:{minutes:02d}"
-
-        html += '        <tr>\n'
-        html += f'          <td data-sortkey="{data_title}"><a href="?book_id={book_id}">{title}</a></td>\n'
-        html += create_authors_td_html(conn, book_id, "")
-        html += '          <td></td>\n' # translators
-        html += '          <td></td>\n' # narrators
-        html += f'          <td>{book_pub_date if book_pub_date is not None else ""}</td>\n'
-        html += f'          <td>{audio_pub_date if audio_pub_date is not None else ""}</td>\n'
-        html += f'          <td data-sortkey="{data_length}" class="right">{length}</td>\n'
-        html += '        </tr>\n'
+        for book in sorted_books_list:
+            (title, title_sort_key, pub_date, audio_pub_date, length, book_id) = book
+            html += '        <tr>\n'
+            if first_tr:
+                html += f'          <td{row_span_str}>{author_name}</td>\n'
+                first_tr = False
+            html += f'          <td>{title}</td>\n'
+            html += create_authors_td_html(conn, book_id)
+            html += f'          <td class="right">{length}</td>\n'
+            # Select the acquisition date.
+            acquisition_date = select_acquisition_date(conn, book_id)
+            html += f'          <td>{acquisition_date}</td>\n'
+            # Select the status, finished date (may be null), rating stars (may
+            # be null), and rating description (is null if rating stars is null).
+            # Create strings for the HTML output.
+            rs = select_notes_for_book(conn, book_id)
+            status = rs[0][1]
+            finish_date = rs[0][2]
+            if finish_date is None:
+                finish_date = ""
+            rating_stars = rs[0][3]
+            rating_description = rs[0][4]
+            rating = get_rating(rating_stars, rating_description)
+            html += f'          <td>{status}</td>\n'
+            html += f'          <td>{finish_date}</td>\n'
+            html += f'          <td>{rating}</td>\n'
+            html += '        </tr>\n'
     html += '      </tbody>\n'
     html += '    </table>\n'
     return html
-
-
-def create_end_html():
-    end_html = """\
-            </main>
-          </body>
-        </html>"""
-    return textwrap.dedent(end_html)
 
 
 def create_all_books_table_html(conn, books_result_set):
@@ -343,6 +421,35 @@ def create_all_books_table_html(conn, books_result_set):
     return html
 
 
+def create_authors_td_html(conn, book_id):
+    """
+    Given a book_id, select the authors and format them with links in a
+    td element. When there are multiple authors, use the first author as
+    the sort key.
+    """
+    data_rows = select_authors_for_book(conn, book_id)
+    author_strings = []
+    first_author = True
+    for row in data_rows:
+        (author_id, author_surname, author_forename) = row
+        author_name = get_author_name(author_surname, author_forename)
+        if first_author:
+            author_name_sort_key = get_author_name_sort_key(author_surname, author_forename)
+            first_author = False
+        author_string = f'<a href="?author_id={author_id}">{author_name}</a>'
+        author_strings.append(author_string)
+    html = f'          <td data-sortkey="{author_name_sort_key}">{", ".join(author_strings)}</td>\n'
+    return html
+
+
+def create_end_html():
+    end_html = """\
+            </main>
+          </body>
+        </html>"""
+    return textwrap.dedent(end_html)
+
+
 def create_sortable_books_table_html(conn, books_result_set, filterable=False):
     """
     The all books table is filterable.
@@ -356,61 +463,59 @@ def create_sortable_books_table_html(conn, books_result_set, filterable=False):
         html += '    <table>\n'
     html += '      <thead>\n'
     html += '        <tr>\n'
-    for col_name in ["Title", "Authors", "Length", "Acquisition Date", "Status", "Finished Date", "Rating"]:
+
+    # Since the table is sorted by title, but the up arrow symbol in the
+    # span element.
+    html += f'          <th class="sortable" title="{th_tool_tip}">Title <span>⭡</span></th>\n'
+
+    # Add the headings for the remaining columns.
+    for col_name in ["Authors", "Length", "Acquisition Date", "Status", "Finished Date", "Rating"]:
         html += f'          <th class="sortable" title="{th_tool_tip}">{col_name} <span>⭥</span></th>\n'
     html += '        </tr>\n'
     html += '      </thead>\n'
     html += '      <tbody>\n'
 
-    # Sort the rows by the requested criterion since JavaScript can't sort the table correctly.
+    # Add a title sort key to the row and sort by the title sort key.
+    books_list = []
     for row in books_result_set:
-        (title, book_pub_date, audio_pub_date, hours, minutes, book_id) = row
+        book_attrs = list(row)
+        title = book_attrs[0]
+        title_sort_key = get_title_sort_key(title)
+        book_attrs.append(title_sort_key)
+        books_list.append(book_attrs)
+    sorted_book_attrs = sorted(books_list, key=lambda attrs: attrs[6])
 
-        # Create keys for sorting by length or title.
-        data_length = 60 * int(hours) + int(minutes)
-
-        # Create case-insensitive keys for sorting by title, ignoring "The", "A",
-        # and "An" at the beginning of the title.
-        if title.startswith("A "):
-            data_title = title[2:]
-        elif title.startswith("An "):
-            data_title = title[3:]
-        elif title.startswith("The "):
-            data_title = title[4:]
-        else:
-            data_title = title
-        title_sortkey = data_title.upper()
-
+    # Get the book attributes for the table.
+    for book_attrs in sorted_book_attrs:
+        [title, book_pub_date, audio_pub_date, hours, minutes, book_id, title_sort_key] = book_attrs
+        # Create a key for sorting by length.
+        length_sort_key = 60 * int(hours) + int(minutes)
         # Convert hours and minutes to an hh:mm string.
-        length = f"{hours}:{minutes:02d}"
-
+        length = get_audiobook_length(hours, minutes)
         # Select the acquisition date.
         acquisition_date = select_acquisition_date(conn, book_id)
-
         # Select the status, finished date (may be null), rating stars (may
-        # be null), and rating description. Create strings for the HTML output.
+        # be null), and rating description (is null if rating stars is null).
+        # Create strings for the HTML output.
         rs = select_notes_for_book(conn, book_id)
         status = rs[0][1]
         finish_date = rs[0][2]
-        rating_stars = rs[0][3]
-        rating_description = rs[0][4]
-        rating = ""
         if finish_date is None:
             finish_date = ""
-        if rating_stars is not None:
-            rating = str(rating_stars) + " " + rating_description
+        rating_stars = rs[0][3]
+        rating_description = rs[0][4]
+        rating = get_rating(rating_stars, rating_description)
 
         # Create table rows for all books, reporting only the first finished date.
-        if len(rs) > 0:
-            html += f'        <tr class="{status.lower()}">\n'
-            html += f'          <td data-sortkey="{title_sortkey}"><a href="?book_id={book_id}">{title}</a></td>\n'
-            html += create_authors_td_html(conn, book_id, "")
-            html += f'          <td data-sortkey="{data_length}" class="right">{length}</td>\n'
-            html += f'          <td>{acquisition_date}</td>\n'
-            html += f'          <td>{status}</td>\n'
-            html += f'          <td>{finish_date}</td>\n'
-            html += f'          <td>{rating}</td>\n'
-            html += '        </tr>\n'
+        html += f'        <tr class="{status.lower()}">\n'
+        html += f'          <td data-sortkey="{title_sort_key}"><a href="?book_id={book_id}">{title}</a></td>\n'
+        html += create_authors_td_html(conn, book_id)
+        html += f'          <td data-sortkey="{length_sort_key}" class="right">{length}</td>\n'
+        html += f'          <td>{acquisition_date}</td>\n'
+        html += f'          <td>{status}</td>\n'
+        html += f'          <td>{finish_date}</td>\n'
+        html += f'          <td>{rating}</td>\n'
+        html += '        </tr>\n'
 
     html += '      </tbody>\n'
     html += '    </table>\n'
@@ -433,7 +538,7 @@ def create_start_html():
                 <ul>
                   <li class="logo"><a href="index.cgi">🎧<em>Audio</em>books📚</a></li>
                   <li><a href="index.cgi">Audiobooks</a></li>
-                  <li><a href="#">Authors</a></li>
+                  <li><a href="index.cgi?authors=all">Authors</a></li>
                   <li><a href="#">Narrators</a></li>
                   <li><a href="#">About</a></li>
                   <li><a href="#">Log In</a></li>
@@ -446,9 +551,8 @@ def create_start_html():
     return textwrap.dedent(start_html)
 
 
-##########
+########## Get data code.
 
-# Get data code.
 
 def get_book_data(conn, book_id):
     book_rs = select_book(conn, book_id)
@@ -532,10 +636,28 @@ def get_book_data(conn, book_id):
     return book_dict
 
 
-##########
+########## Display code.
 
 
-# Display code.
+def display_all_authors(conn):
+    print("Content-Type: text/html\r\n\r\n", end="")
+    html = create_start_html()
+    html += create_all_authors_table_html(conn)
+    html += create_end_html()
+    print(html)
+
+
+def display_all_books(conn):
+    """
+    title, authors, length, acquisition_date, status, finish_date, rating.
+    """
+    print("Content-Type: text/html\r\n\r\n", end="")
+    all_books_rs = select_all_books(conn)
+    html = create_start_html()
+    html += create_all_books_table_html(conn, all_books_rs)
+    html += create_end_html()
+    print(html)
+
 
 def display_author(conn, author_id):
     print("Content-Type: text/html\r\n\r\n", end="")
@@ -714,27 +836,20 @@ def display_book(conn, book_id):
     print(html)
 
 
-def display_all_books(conn):
-    """
-    title, authors, length, acquisition_date, status, finish_date, rating.
-    """
-    print("Content-Type: text/html\r\n\r\n", end="")
-    all_books_rs = select_all_books(conn)
-    html = create_start_html()
-    html += create_all_books_table_html(conn, all_books_rs)
-    html += create_end_html()
-    print(html)
-
-
 def main():
     conn = connect()
-    fs = cgi.FieldStorage()
-    if "author_id" in fs:
-        display_author(conn, fs["author_id"].value)
-    elif "book_id" in fs:
-        display_book(conn, fs["book_id"].value)
-    else:
-        display_all_books(conn)
+    try:
+        fs = cgi.FieldStorage()
+        if "author_id" in fs:
+            display_author(conn, fs["author_id"].value)
+        elif "book_id" in fs:
+            display_book(conn, fs["book_id"].value)
+        elif "authors" in fs:
+            display_all_authors(conn)
+        else:
+            display_all_books(conn)
+    except Exception as exc:
+        print(exc)
     conn.close()
 
 
