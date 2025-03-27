@@ -9,13 +9,14 @@ import cgitb
 cgitb.enable()
 import os
 import sqlite3
+import sys
 import textwrap
 
-from dotenv import load_dotenv
-load_dotenv()
+import dotenv
+dotenv.load_dotenv()
 
 
-########## Database code
+########## Database interaction code
 
 
 def connect():
@@ -373,9 +374,9 @@ def create_all_authors_table_html(conn):
             (title, title_sort_key, pub_date, audio_pub_date, length, book_id) = book
             html += '        <tr>\n'
             if first_tr:
-                html += f'          <td{row_span_str}>{author_name}</td>\n'
+                html += f'          <td{row_span_str}><a href="index.cgi?author_id={author_id}">{author_name}</a></td>\n'
                 first_tr = False
-            html += f'          <td>{title}</td>\n'
+            html += f'          <td><a href="index.cgi?book_id={book_id}">{title}</a></td>\n'
             html += create_authors_td_html(conn, book_id)
             html += f'          <td class="right">{length}</td>\n'
             # Select the acquisition date.
@@ -439,6 +440,175 @@ def create_authors_td_html(conn, book_id):
         author_string = f'<a href="?author_id={author_id}">{author_name}</a>'
         author_strings.append(author_string)
     html = f'          <td data-sortkey="{author_name_sort_key}">{", ".join(author_strings)}</td>\n'
+    return html
+
+    
+def create_book_html(book):
+    """
+    Book is dict from which all information about an audiobook can
+    be extracted.
+    """
+    # Precompute cell values.
+    length = "" if book["hours"] is None else f'{book["hours"]}:{book["minutes"]:02d}'
+    book_pub_date = "" if book["book_pub_date"] is None else book["book_pub_date"]
+    audio_pub_date = "" if book["audio_pub_date"] is None else book["audio_pub_date"]
+    price_in_dollars = "" if book["acquisition"]["price_in_cents"] is None\
+        else "$" + str(float(book["acquisition"]["price_in_cents"] / 100))
+    discontinued = "" if book["acquisition"]["discontinued"] is None else "discontinued"
+    
+    author_strings = []
+    author_html_strings = []
+    for author_dict in book["authors"]:
+        author_id = author_dict["author_id"]
+        author_surname = author_dict["author_surname"]
+        author_forename = author_dict["author_forename"]
+        author_name = f"{author_forename} {author_surname}"
+        author_html_string = f'<a href="?author_id={author_id}">{author_name}</a>'
+        author_html_strings.append(author_html_string)
+        author_strings.append(author_name)
+    
+    translator_html_strings = []
+    for translator_dict in book["translators"]:
+        translator_id = translator_dict["translator_id"]
+        translator_name = translator_dict["translator_name"]
+        translator_string = f'<a href="?translator_id={translator_id}">{translator_name}</a>'
+        translator_html_strings.append(translator_string)
+
+    narrator_html_strings = []
+    for narrator_dict in book["narrators"]:
+        narrator_id = narrator_dict["narrator_id"]
+        narrator_name = narrator_dict["narrator_name"]
+        narrator_string = f'<a href="?narrator_id={narrator_id}">{narrator_name}</a>'
+        narrator_html_strings.append(narrator_string)
+
+    # Build and return HTML containing an h1 header, an h2 Book Information header
+    # with an accompanying table, and an h2 Listener Notes header with an
+    # accompanying table.
+    html = ''
+    html += f'    <h1><cite>{book["title"]}</cite>, by {", ".join(author_strings)}</h1>'
+    html += '    <h2>Book Information</h2>\n'
+    html += '    <table>\n'
+    html += '      <tbody class="vertical">\n'
+
+    # Title
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Title</th>\n'
+    html += f'          <td><cite>{book["title"]}</cite></td>\n'
+    html += '        </tr>\n'
+
+    # Authors
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Author{}</th>\n'.format(
+        "s" if len(author_strings) > 1 else "")
+    html += f'          <td>{", ".join(author_html_strings)}</td>\n'
+    html += '        </tr>\n'
+
+    # Length
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Length (hr:min)</th>\n'
+    html += f'          <td>{length}</td>\n'
+    html += '        </tr>\n'
+
+    # Translators
+    if len(translator_html_strings) > 0:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Translator{}</th>\n'.format(
+            "s" if len(translator_html_strings) > 1 else "")
+        html += f'          <td>{", ".join(translator_html_strings)}</td>\n'
+        html += '        </tr>\n'
+
+    # Narrators
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Narrator{}</th>\n'.format(
+        "s" if len(narrator_html_strings) != 1 else "")
+    html += f'          <td>{", ".join(narrator_html_strings)}</td>\n'
+    html += '        </tr>\n'
+
+    # Book Pub. Date
+    if book_pub_date:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Book Pub. Date</th>\n'
+        html += f'          <td>{book_pub_date}</td>\n'
+        html += '        </tr>\n'
+
+    # Audio Pub. Date
+    if audio_pub_date:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Audio Pub. Date</th>\n'
+        html += f'          <td>{audio_pub_date}</td>\n'
+        html += '        </tr>\n'
+
+    # Acquired By
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Acquired By</th>\n'
+    html += f'          <td>{book["acquisition"]["username"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Vendor
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Vendor</th>\n'
+    html += f'          <td>{book["acquisition"]["vendor_name"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Acquisition Type
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Acquisition Type</th>\n'
+    html += f'          <td>{book["acquisition"]["acquisition_type"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Acquisition Date
+    html += '        <tr>\n'
+    html += '          <th class="vertical">Acquisition Date</th>\n'
+    html += f'          <td>{book["acquisition"]["acquisition_date"]}</td>\n'
+    html += '        </tr>\n'
+
+    # Discontinued
+    if discontinued:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Discontinued</th>\n'
+        html += f'          <td>{discontinued}</td>\n'
+        html += '        </tr>\n'
+
+    # Audible Credits
+    if book["acquisition"]["audible_credits"] is not None:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Audible Credits</th>\n'
+        html += f'          <td>{book["acquisition"]["audible_credits"]}</td>\n'
+        html += '        </tr>\n'
+
+    # Price (Dollars)
+    if price_in_dollars:
+        html += '        <tr>\n'
+        html += '          <th class="vertical">Price</th>\n'
+        html += f'          <td>{price_in_dollars}</td>\n'
+        html += '        </tr>\n'
+
+    html += '      </tbody>\n'
+    html += '    </table>\n'
+
+    # Listener Notes
+    html += '    <h2>Listener Notes</h2>\n'
+    html += '    <table>\n'
+    html += '      <thead>\n'
+    html += '        <tr>\n'
+    headers = ('Listener', 'Status', 'Finish Date', "Rating", "Comments")
+    for header in headers:
+        html += f'          <th>{header}</th>\n'
+    html += '        </tr>\n'
+    html += '      </thead>\n'
+    html += '      <tbody>\n'
+    for note in book["notes"]:
+        html += '        <tr>\n'
+        html += f'          <td>{note["username"]}</td>\n'
+        html += f'          <td>{"" if note["status"] is None else note["status"]}</td>\n'
+        html += f'          <td>{"" if note["finish_date"] is None else note["finish_date"]}</td>\n'
+        rating = ""
+        if note["rating_stars"] is not None:
+            rating = str(note["rating_stars"]) + " " + note["rating_description"]
+        html += f'          <td>{rating}</td>\n'
+        html += f'          <td>{"" if note["comments"] is None else note["comments"]}</td>\n'
+        html += '        </tr>\n'
+    html += '    </table>\n'
     return html
 
 
@@ -640,10 +810,10 @@ def get_book_data(conn, book_id):
 
 
 def display_all_authors(conn):
-    print("Content-Type: text/html\r\n\r\n", end="")
     html = create_start_html()
     html += create_all_authors_table_html(conn)
     html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
 
 
@@ -651,194 +821,45 @@ def display_all_books(conn):
     """
     title, authors, length, acquisition_date, status, finish_date, rating.
     """
-    print("Content-Type: text/html\r\n\r\n", end="")
     all_books_rs = select_all_books(conn)
     html = create_start_html()
     html += create_all_books_table_html(conn, all_books_rs)
     html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
 
 
 def display_author(conn, author_id):
-    print("Content-Type: text/html\r\n\r\n", end="")
     html = create_start_html()
     author_name = select_author_name(conn, author_id)
     html += f'    <h1>Audiobooks by {author_name}</h1>\n'
     books_for_author_rs = select_books_for_author(conn, author_id)
     html += create_sortable_books_table_html(conn, books_for_author_rs)
     html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
 
 
 def display_book(conn, book_id):
-    print("Content-Type: text/html\r\n\r\n", end="")
     html = create_start_html()
     book = get_book_data(conn, book_id)
-    
-    # Precompute cell values.
-    length = "" if book["hours"] is None else f'{book["hours"]}:{book["minutes"]:02d}'
-    book_pub_date = "" if book["book_pub_date"] is None else book["book_pub_date"]
-    audio_pub_date = "" if book["audio_pub_date"] is None else book["audio_pub_date"]
-    price_in_dollars = "" if book["acquisition"]["price_in_cents"] is None\
-        else "$" + str(float(book["acquisition"]["price_in_cents"] / 100))
-    discontinued = "" if book["acquisition"]["discontinued"] is None else "discontinued"
-    
-    author_strings = []
-    author_html_strings = []
-    for author_dict in book["authors"]:
-        author_id = author_dict["author_id"]
-        author_surname = author_dict["author_surname"]
-        author_forename = author_dict["author_forename"]
-        author_name = f"{author_forename} {author_surname}"
-        author_html_string = f'<a href="?author_id={author_id}">{author_name}</a>'
-        author_html_strings.append(author_html_string)
-        author_strings.append(author_name)
-    
-    translator_html_strings = []
-    for translator_dict in book["translators"]:
-        translator_id = translator_dict["translator_id"]
-        translator_name = translator_dict["translator_name"]
-        translator_string = f'<a href="?translator_id={translator_id}">{translator_name}</a>'
-        translator_html_strings.append(translator_string)
-
-    narrator_html_strings = []
-    for narrator_dict in book["narrators"]:
-        narrator_id = narrator_dict["narrator_id"]
-        narrator_name = narrator_dict["narrator_name"]
-        narrator_string = f'<a href="?narrator_id={narrator_id}">{narrator_name}</a>'
-        narrator_html_strings.append(narrator_string)
-
-    html += f'    <h1><cite>{book["title"]}</cite>, by {", ".join(author_strings)}</h1>'
-    html += '    <h2>Book Information</h2>\n'
-    html += '    <table>\n'
-    html += '      <tbody class="vertical">\n'
-
-    # Title
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Title</th>\n'
-    html += f'          <td><cite>{book["title"]}</cite></td>\n'
-    html += '        </tr>\n'
-
-    # Authors
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Author{}</th>\n'.format(
-        "s" if len(author_strings) > 1 else "")
-    html += f'          <td>{", ".join(author_html_strings)}</td>\n'
-    html += '        </tr>\n'
-
-    # Length
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Length (hr:min)</th>\n'
-    html += f'          <td>{length}</td>\n'
-    html += '        </tr>\n'
-
-    # Translators
-    if len(translator_html_strings) > 0:
-        html += '        <tr>\n'
-        html += '          <th class="vertical">Translator{}</th>\n'.format(
-            "s" if len(translator_html_strings) > 1 else "")
-        html += f'          <td>{", ".join(translator_html_strings)}</td>\n'
-        html += '        </tr>\n'
-
-    # Narrators
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Narrator{}</th>\n'.format(
-        "s" if len(narrator_html_strings) != 1 else "")
-    html += f'          <td>{", ".join(narrator_html_strings)}</td>\n'
-    html += '        </tr>\n'
-
-    # Book Pub. Date
-    if book_pub_date:
-        html += '        <tr>\n'
-        html += '          <th class="vertical">Book Pub. Date</th>\n'
-        html += f'          <td>{book_pub_date}</td>\n'
-        html += '        </tr>\n'
-
-    # Audio Pub. Date
-    if audio_pub_date:
-        html += '        <tr>\n'
-        html += '          <th class="vertical">Audio Pub. Date</th>\n'
-        html += f'          <td>{audio_pub_date}</td>\n'
-        html += '        </tr>\n'
-
-    # Acquired By
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Acquired By</th>\n'
-    html += f'          <td>{book["acquisition"]["username"]}</td>\n'
-    html += '        </tr>\n'
-
-    # Vendor
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Vendor</th>\n'
-    html += f'          <td>{book["acquisition"]["vendor_name"]}</td>\n'
-    html += '        </tr>\n'
-
-    # Acquisition Type
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Acquisition Type</th>\n'
-    html += f'          <td>{book["acquisition"]["acquisition_type"]}</td>\n'
-    html += '        </tr>\n'
-
-    # Acquisition Date
-    html += '        <tr>\n'
-    html += '          <th class="vertical">Acquisition Date</th>\n'
-    html += f'          <td>{book["acquisition"]["acquisition_date"]}</td>\n'
-    html += '        </tr>\n'
-
-    # Discontinued
-    if discontinued:
-        html += '        <tr>\n'
-        html += '          <th class="vertical">Discontinued</th>\n'
-        html += f'          <td>{discontinued}</td>\n'
-        html += '        </tr>\n'
-
-    # Audible Credits
-    if book["acquisition"]["audible_credits"] is not None:
-        html += '        <tr>\n'
-        html += '          <th class="vertical">Audible Credits</th>\n'
-        html += f'          <td>{book["acquisition"]["audible_credits"]}</td>\n'
-        html += '        </tr>\n'
-
-    # Price (Dollars)
-    if price_in_dollars:
-        html += '        <tr>\n'
-        html += '          <th class="vertical">Price</th>\n'
-        html += f'          <td>{price_in_dollars}</td>\n'
-        html += '        </tr>\n'
-
-    html += '      </tbody>\n'
-    html += '    </table>\n'
-
-    # Listener Notes
-    html += '    <h2>Listener Notes</h2>\n'
-    html += '    <table>\n'
-    html += '      <thead>\n'
-    html += '        <tr>\n'
-    headers = ('Listener', 'Status', 'Finish Date', "Rating", "Comments")
-    for header in headers:
-        html += f'          <th>{header}</th>\n'
-    html += '        </tr>\n'
-    html += '      </thead>\n'
-    html += '      <tbody>\n'
-    for note in book["notes"]:
-        html += '        <tr>\n'
-        html += f'          <td>{note["username"]}</td>\n'
-        html += f'          <td>{"" if note["status"] is None else note["status"]}</td>\n'
-        html += f'          <td>{"" if note["finish_date"] is None else note["finish_date"]}</td>\n'
-        rating = ""
-        if note["rating_stars"] is not None:
-            rating = str(note["rating_stars"]) + " " + note["rating_description"]
-        html += f'          <td>{rating}</td>\n'
-        html += f'          <td>{"" if note["comments"] is None else note["comments"]}</td>\n'
-        html += '        </tr>\n'
-    html += '    </table>\n'
+    html += create_book_html(book)
     html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
 
 
 def main():
-    conn = connect()
+    """
+    Carefully manage exceptions to make sure the database file is closed.
+    
+    Carefully manage HTTP Content-Type headers. Each display function prints
+    its own Content-Type header so the application can return HTML, an image,
+    CSV, JSON, etc.
+    """
     try:
+        conn = None
+        conn = connect()
         fs = cgi.FieldStorage()
         if "author_id" in fs:
             display_author(conn, fs["author_id"].value)
@@ -848,9 +869,13 @@ def main():
             display_all_authors(conn)
         else:
             display_all_books(conn)
-    except Exception as exc:
-        print(exc)
-    conn.close()
+    except Exception:
+        # Send a Content-Type header before printing the exception.
+        print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
+        print(cgitb.html(sys.exc_info()))
+    finally:
+        if conn:
+            conn.close()
 
 
 if __name__ == "__main__":
