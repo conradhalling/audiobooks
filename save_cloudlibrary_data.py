@@ -3,11 +3,11 @@ Read the audible.csv data file and save the data in the SQLite3 database.
 The script will not load the data more than once.
 
 EXAMPLE
-    python3 save_audible_data.py \
+    python3 save_cloudlibrarydata.py \
         --user          username \
         --csv_file      data/cloudlibrary.csv \
         --db_file       data/audiobooks.sqlite3 \
-        --log_file      logs/create_db.log \
+        --log_file      logs/save_cloudlibrary_data.log \
         --log_level     debug \
         --transaction   commit
 """
@@ -33,14 +33,14 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="Save audible.com audiobooks data to the SQLite3 database",
+        description="Save cloudLibrary audiobooks data to the SQLite3 database",
         epilog=textwrap.dedent(rf"""
         Example:
           python3 {os.path.basename(__file__)} \
             --username      username \
             --csv_file      data/cloudlibrary.csv \
             --db_file       data/audiobooks.sqlite3 \
-            --log_file      logs/create_db.log \
+            --log_file      logs/save_cloudlibrary_data.log \
             --log_level     debug \
             --transaction   commit""")
     )

@@ -7,7 +7,7 @@ EXAMPLE
         --user          username \
         --csv_file      data/audible.csv \
         --db_file       data/audiobooks.sqlite3 \
-        --log_file      logs/create_db.log \
+        --log_file      logs/save_audible_data.log \
         --log_level     debug \
         --transaction   commit
 """
@@ -39,7 +39,7 @@ def parse_args():
             --username      username \
             --csv_file      data/audible.csv \
             --db_file       data/audiobooks.sqlite3 \
-            --log_file      logs/create_db.log \
+            --log_file      logs/save_audible_data.log \
             --log_level     debug \
             --transaction   commit""")
     )

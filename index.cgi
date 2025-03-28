@@ -496,7 +496,7 @@ def create_book_html(book):
     book_pub_date = "" if book["book_pub_date"] is None else book["book_pub_date"]
     audio_pub_date = "" if book["audio_pub_date"] is None else book["audio_pub_date"]
     price_in_dollars = "" if book["acquisition"]["price_in_cents"] is None\
-        else "$" + str(float(book["acquisition"]["price_in_cents"] / 100))
+        else "$" + f'{float(book["acquisition"]["price_in_cents"] / 100):.2f}'
     discontinued = "" if book["acquisition"]["discontinued"] is None else "discontinued"
     
     author_strings = []
@@ -753,6 +753,7 @@ def create_start_html():
                   <li><a href="index.cgi">Audiobooks</a></li>
                   <li><a href="index.cgi?authors=all">Authors</a></li>
                   <li><a href="index.cgi?about=about">About</a></li>
+                  <li><a href="new.cgi">New</a></li>
                   <li><a href="#">Log In</a></li>
                   <li class="blog"><a href="/blog/">Blog</a></li>
                 </ul>

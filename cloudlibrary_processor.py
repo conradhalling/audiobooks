@@ -28,8 +28,7 @@ def save_data(username, csv_file):
         for csv_row in csv_reader:
             (
                 csv_title,
-                csv_author_surname,
-                csv_author_forename,
+                csv_authors,
                 csv_hours,
                 csv_minutes,
                 csv_pub_date,
@@ -46,9 +45,17 @@ def save_data(username, csv_file):
             csv_narrators = ""
             csv_acquisition_type = "library benefit"
 
-            logger.debug(f"csv_author_surname: '{csv_author_surname}'")
-            logger.debug(f"csv_author_forename: '{csv_author_forename}'")
-            author_id = save_author(csv_author_surname, csv_author_forename)
+            logger.debug(f"csv_authors: '{csv_authors}'")
+            csv_author_strings = csv_authors.split(" & ")
+            logger.debug(f"csv_author_strings: '{csv_author_strings}'")
+            author_ids = []
+            for csv_author_string in csv_author_strings:
+                logger.debug(f"csv_author_string: '{csv_author_string}'")
+                surname, forename = csv_author_string.split(", ")
+                logger.debug(f"surname: '{surname}'")
+                logger.debug(f"forename: {forename}'")
+                author_id = save_author(surname, forename)
+                author_ids.append(author_id)
 
             logger.debug(f"csv_translators: '{csv_translators}'")
             translator_ids = save_translators(csv_translators)
@@ -64,7 +71,8 @@ def save_data(username, csv_file):
             book_id = save_book(csv_title, csv_pub_date, audio_pub_date, csv_hours, 
                                 csv_minutes)
 
-            db.book_author.save(book_id, author_id)
+            for author_id in author_ids:
+                db.book_author.save(book_id, author_id)
             
             for translator_id in translator_ids:
                 db.book_translator.save(book_id, translator_id)
