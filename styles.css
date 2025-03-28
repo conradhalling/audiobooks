@@ -6,6 +6,7 @@
   --color-020: hsl(210 40  20);
   --color-025: hsl(210 40  25);
   --color-030: hsl(210 40  30);
+  --color-050: hsl(210 40  50);
   --color-075: hsl(210 40  75);
   --color-080: hsl(210 40  80);
   --color-085: hsl(210 40  85);
@@ -187,6 +188,16 @@ td a:visited:hover {
 }
 
 
+p a {
+  color: var(--color-025);
+  text-decoration: none;
+}
+
+p a:hover {
+  color: var(--color-050);
+  text-decoration: underline;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     background-color: var(--color-010);
@@ -253,6 +264,16 @@ td a:visited:hover {
   td a:hover,
   td a:visited:hover {
     color: var(--color-075);
+    text-decoration: underline;
+  }
+
+  p a {
+    color: var(--color-075);
+    text-decoration: none;
+  }
+
+  p a:hover {
+    color: var(--color-050);
     text-decoration: underline;
   }
 }

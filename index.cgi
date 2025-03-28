@@ -323,6 +323,49 @@ def get_title_sort_key(title):
 ########## HTML generation code
 
 
+def create_about_html():
+    html = """\
+    <h1>About Audiobooks</h1>
+    <p>
+      I have been recording the audiobooks I've listened to in an Excel
+      spreadsheet since May, 2008. But a spreadsheet does a poor job of handling
+      multiple authors for a book or multiple readings (listenings). So I wrote
+      this tool to make it easier to keep track of the audiobooks I've listened
+      to.
+    </p>
+    <p>
+      Out of necessity, I wrote this application using Python CGI. This is
+      because my shared hosting service supports PHP or Python CGI and not a
+      newer protocol such as WSGI (e.g., Flask). Although CGI is dismissed these
+      days as unworthy, CGI applications are fairly easy to write.
+    </p>
+    <p>
+      Anyone is welcome to view the data, but at this time I am the only person
+      who can log in to add new audiobooks or update existing audiobooks.
+    </p>
+    <p>
+      The source code for this application is available at my
+      <a href="https://github.com/conradhalling/audiobooks">GitHub
+      repository</a>.
+    </p>
+    <p>
+      Planned features:
+    </p>
+    <ul>
+      <li>Create a login page.</li>
+      <li>
+        Allow a logged in user to edit existing audiobooks or add new
+        audiobooks.
+      </li>
+      <li>View all book narrators.</li>
+      <li>Export all data in JSON format.</li>
+      <li>Add the book series that a book belongs to.</li>
+      <li>Make the web pages responsive to screen size.</li>
+    </ul>
+    """
+    return html
+
+
 def create_all_authors_table_html(conn):
     # Get authors' forenames and surnames and combine them into a
     # case-dependent sort key and a full name.
@@ -709,8 +752,7 @@ def create_start_html():
                   <li class="logo"><a href="index.cgi">🎧<em>Audio</em>books📚</a></li>
                   <li><a href="index.cgi">Audiobooks</a></li>
                   <li><a href="index.cgi?authors=all">Authors</a></li>
-                  <li><a href="#">Narrators</a></li>
-                  <li><a href="#">About</a></li>
+                  <li><a href="index.cgi?about=about">About</a></li>
                   <li><a href="#">Log In</a></li>
                   <li class="blog"><a href="/blog/">Blog</a></li>
                 </ul>
@@ -809,6 +851,14 @@ def get_book_data(conn, book_id):
 ########## Display code.
 
 
+def display_about():
+    html = create_start_html()
+    html += create_about_html()
+    html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
+    print(html)
+
+
 def display_all_authors(conn):
     html = create_start_html()
     html += create_all_authors_table_html(conn)
@@ -867,6 +917,8 @@ def main():
             display_book(conn, fs["book_id"].value)
         elif "authors" in fs:
             display_all_authors(conn)
+        elif "about" in fs:
+            display_about()
         else:
             display_all_books(conn)
     except Exception:
