@@ -94,9 +94,10 @@ def select_all_books(conn):
     return result_set
 
 
-def select_author_name(conn, author_id):
+def select_author(conn, author_id):
     sql_select_author = """
         SELECT
+            tbl_author.id,
             tbl_author.surname,
             tbl_author.forename
         FROM
@@ -107,8 +108,7 @@ def select_author_name(conn, author_id):
     cur = conn.execute(sql_select_author, (author_id,))
     result_set = cur.fetchone()
     cur.close()
-    author_name = result_set[1] + " " + result_set[0]
-    return author_name
+    return result_set
 
 
 def select_authors_for_book(conn, book_id):
@@ -194,7 +194,8 @@ def select_narrators_for_book(conn, book_id):
     sql_select_narrators_for_book = """
         SELECT
             tbl_narrator.id,
-            tbl_narrator.name
+            tbl_narrator.surname,
+            tbl_narrator.forename
         FROM
             tbl_book_narrator
             INNER JOIN tbl_narrator
@@ -240,7 +241,8 @@ def select_translators_for_book(conn, book_id):
     sql_select_translators_for_book = """
         SELECT
             tbl_translator.id,
-            tbl_translator.name
+            tbl_translator.surname,
+            tbl_translator.forename
         FROM
             tbl_book_translator
             INNER JOIN tbl_translator
@@ -274,7 +276,7 @@ def get_author_name(surname, forename):
     if surname is None:
         name = forename
     else:
-        name = forename + " " + surname
+        name = surname + ", " + forename
     return name
 
 
@@ -482,7 +484,7 @@ def create_authors_td_html(conn, book_id):
             first_author = False
         author_string = f'<a href="?author_id={author_id}">{author_name}</a>'
         author_strings.append(author_string)
-    html = f'          <td data-sortkey="{author_name_sort_key}">{", ".join(author_strings)}</td>\n'
+    html = f'          <td data-sortkey="{author_name_sort_key}">{"; ".join(author_strings)}</td>\n'
     return html
 
     
@@ -505,7 +507,10 @@ def create_book_html(book):
         author_id = author_dict["author_id"]
         author_surname = author_dict["author_surname"]
         author_forename = author_dict["author_forename"]
-        author_name = f"{author_forename} {author_surname}"
+        if author_surname is None:
+            author_name = author_forename
+        else:
+            author_name = f"{author_surname}, {author_forename}"
         author_html_string = f'<a href="?author_id={author_id}">{author_name}</a>'
         author_html_strings.append(author_html_string)
         author_strings.append(author_name)
@@ -513,14 +518,24 @@ def create_book_html(book):
     translator_html_strings = []
     for translator_dict in book["translators"]:
         translator_id = translator_dict["translator_id"]
-        translator_name = translator_dict["translator_name"]
+        translator_forename = translator_dict["translator_forename"]
+        translator_surname = translator_dict["translator_surname"]
+        if translator_surname is None:
+            translator_name = translator_forename
+        else:
+            translator_name = translator_forename + " " + translator_surname
         translator_string = f'<a href="?translator_id={translator_id}">{translator_name}</a>'
         translator_html_strings.append(translator_string)
 
     narrator_html_strings = []
     for narrator_dict in book["narrators"]:
         narrator_id = narrator_dict["narrator_id"]
-        narrator_name = narrator_dict["narrator_name"]
+        narrator_forename = narrator_dict["narrator_forename"]
+        narrator_surname = narrator_dict["narrator_surname"]
+        if narrator_surname is None:
+            narrator_name = narrator_forename
+        else:
+            narrator_name = narrator_forename + " " + narrator_surname
         narrator_string = f'<a href="?narrator_id={narrator_id}">{narrator_name}</a>'
         narrator_html_strings.append(narrator_string)
 
@@ -528,7 +543,7 @@ def create_book_html(book):
     # with an accompanying table, and an h2 Listener Notes header with an
     # accompanying table.
     html = ''
-    html += f'    <h1><cite>{book["title"]}</cite>, by {", ".join(author_strings)}</h1>'
+    html += f'    <h1><cite>{book["title"]}</cite>, by {"; ".join(author_strings)}</h1>'
     html += '    <h2>Book Information</h2>\n'
     html += '    <table>\n'
     html += '      <tbody class="vertical">\n'
@@ -543,7 +558,7 @@ def create_book_html(book):
     html += '        <tr>\n'
     html += '          <th class="vertical">Author{}</th>\n'.format(
         "s" if len(author_strings) > 1 else "")
-    html += f'          <td>{", ".join(author_html_strings)}</td>\n'
+    html += f'          <td>{"; ".join(author_html_strings)}</td>\n'
     html += '        </tr>\n'
 
     # Length
@@ -753,9 +768,11 @@ def create_start_html():
                   <li><a href="index.cgi">Audiobooks</a></li>
                   <li><a href="index.cgi?authors=all">Authors</a></li>
                   <li><a href="index.cgi?about=about">About</a></li>
+                  <!--
                   <li><a href="new.cgi">New</a></li>
                   <li><a href="#">Log In</a></li>
                   <li class="blog"><a href="/blog/">Blog</a></li>
+                  -->
                 </ul>
               </nav>
             </header>
@@ -796,10 +813,11 @@ def get_book_data(conn, book_id):
     translators_rs = select_translators_for_book(conn, book_id)
     translators_list = []
     for row in translators_rs:
-        (translator_id, translator_name) = row
+        (translator_id, translator_surname, translator_forename) = row
         translator_dict = {
             "translator_id": translator_id,
-            "translator_name": translator_name,
+            "translator_surname": translator_surname,
+            "translator_forename": translator_forename,
         }
         translators_list.append(translator_dict)
     book_dict["translators"] = translators_list
@@ -807,10 +825,11 @@ def get_book_data(conn, book_id):
     narrators_rs = select_narrators_for_book(conn, book_id)
     narrators_list = []
     for row in narrators_rs:
-        (narrator_id, narrator_name) = row
+        (narrator_id, narrator_surname, narrator_forename) = row
         narrator_dict = {
             "narrator_id": narrator_id,
-            "narrator_name": narrator_name,
+            "narrator_surname": narrator_surname,
+            "narrator_forename": narrator_forename,
         }
         narrators_list.append(narrator_dict)
     book_dict["narrators"] = narrators_list
@@ -882,7 +901,11 @@ def display_all_books(conn):
 
 def display_author(conn, author_id):
     html = create_start_html()
-    author_name = select_author_name(conn, author_id)
+    author_id, author_surname, author_forename = select_author(conn, author_id)
+    if author_surname is None:
+        author_name = author_forename
+    else:
+        author_name = author_forename + " " + author_surname
     html += f'    <h1>Audiobooks by {author_name}</h1>\n'
     books_for_author_rs = select_books_for_author(conn, author_id)
     html += create_sortable_books_table_html(conn, books_for_author_rs)

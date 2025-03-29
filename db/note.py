@@ -29,7 +29,7 @@ def create_table():
             FOREIGN KEY (book_id) REFERENCES tbl_book(id),
             FOREIGN KEY (status_id) REFERENCES tbl_status(id),
             FOREIGN KEY (rating_id) REFERENCES tbl_rating(id)
-        ) strict
+        ) STRICT
     """
     conn.conn.execute(sql_create_table)
 

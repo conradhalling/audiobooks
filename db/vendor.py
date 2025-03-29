@@ -16,7 +16,7 @@ def create_table():
         (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL
-        ) strict
+        ) STRICT
     """
     conn.conn.execute(sql_create_table)
 

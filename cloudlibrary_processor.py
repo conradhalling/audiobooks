@@ -29,9 +29,11 @@ def save_data(username, csv_file):
             (
                 csv_title,
                 csv_authors,
+                csv_narrators,
                 csv_hours,
                 csv_minutes,
-                csv_pub_date,
+                csv_book_pub_date,
+                csv_audio_pub_date,
                 csv_acquisition_date,
                 csv_status,
                 csv_finished_date,
@@ -42,34 +44,44 @@ def save_data(username, csv_file):
             # Initialize values not included in the cloudLibrary CSV data.
             csv_discontinued = ""
             csv_translators = ""
-            csv_narrators = ""
             csv_acquisition_type = "library benefit"
 
+            # Process authors.
             logger.debug(f"csv_authors: '{csv_authors}'")
             csv_author_strings = csv_authors.split(" & ")
             logger.debug(f"csv_author_strings: '{csv_author_strings}'")
-            author_ids = []
-            for csv_author_string in csv_author_strings:
-                logger.debug(f"csv_author_string: '{csv_author_string}'")
-                surname, forename = csv_author_string.split(", ")
-                logger.debug(f"surname: '{surname}'")
-                logger.debug(f"forename: {forename}'")
-                author_id = save_author(surname, forename)
-                author_ids.append(author_id)
+            author_ids = save_authors(csv_author_strings)
 
+            # Process translators.
             logger.debug(f"csv_translators: '{csv_translators}'")
-            translator_ids = save_translators(csv_translators)
+            if csv_translators == "":
+                translator_ids = []
+            else:
+                csv_translator_strings = csv_translators.split(" & ")
+                logger.debug(f"csv_translator_strings: '{csv_translator_strings}'")
+                translator_ids = save_translators(csv_translator_strings)
 
+            # Process narrators.
             logger.debug(f"csv_narrators: '{csv_narrators}'")
-            narrator_ids = save_narrators(csv_narrators)
+            if csv_narrators == "":
+                narrator_ids = []
+            else:
+                csv_narrator_strings = csv_narrators.split(" & ")
+                logger.debug(f"csv_narrator_strings: '{csv_narrator_strings}'")
+                narrator_ids = save_narrators(csv_narrator_strings)
 
             logger.debug(f"csv_title: '{csv_title}'")
-            logger.debug(f"csv_pub_date: '{csv_pub_date}'")
+            logger.debug(f"csv_pub_date: '{csv_book_pub_date}'")
+            logger.debug(f"csv_audio_pub_date: {csv_audio_pub_date}'")
             logger.debug(f"hours: {csv_hours}")
             logger.debug(f"minutes: {csv_minutes}")
-            audio_pub_date = ""
-            book_id = save_book(csv_title, csv_pub_date, audio_pub_date, csv_hours, 
-                                csv_minutes)
+            book_id = save_book(
+                csv_title,
+                csv_book_pub_date,
+                csv_audio_pub_date,
+                csv_hours, 
+                csv_minutes
+            )
 
             for author_id in author_ids:
                 db.book_author.save(book_id, author_id)
@@ -85,7 +97,7 @@ def save_data(username, csv_file):
                 book_id,
                 vendor_id,
                 csv_acquisition_type, 
-                csv_acquisition_date, 
+                csv_acquisition_date,
             )
             
             note_id = save_note(
@@ -155,22 +167,68 @@ def save_book(title, book_pub_date, audio_pub_date, hours, minutes):
     return book_id
 
 
-def save_narrators(narrators_str):
+def save_authors(author_strings):
     """
-    Multiple narrators are separated by "&".
-    No effort is made at this time to break narrator names into
-    first name, middle name, and last name.
+    author_strings is a list of authors formatted as "surname, forename",
+    where multiple words may appear in each of surname and forename. If the
+    author has a single name (e.g., "Homer", "Aeschylus", "Colette"), the
+    surname is saved as NULL in the database.
     """
-    logger.debug(f"narrators_str: '{narrators_str}'")
-    narrators = narrators_str.split(sep="&")
-    logger.debug(f"narrators: {narrators}")
+    author_ids = []
+    for author_string in author_strings:
+        logger.debug(f"author_string: '{author_string}'")
+        names = author_string.split(",")
+        if len(names) == 1:
+            forename = names[0]
+        elif len(names) == 2:
+            surname = names[0]
+            forename = names[1]
+        else:
+            raise ValueError("Author name '{name_string}' formatted incorrectly with too many commas.")
+        surname = surname.strip()
+        if surname == "":
+            surname = None
+        forename = forename.strip()
+        if forename == "":
+            raise ValueError(f"The author's forename '{forename}' must not be empty.")
+        logger.debug(f"surname: '{surname}'")
+        logger.debug(f"forename: {forename}'")
+        author_id = db.author.save(surname, forename)
+        logger.debug(f"author ID: {author_id}")
+        author_ids.append(author_id)
+    return author_ids
+
+
+def save_narrators(narrator_strings):
+    """
+    narrator_strings is a list of narrators formatted as "surname, forename",
+    where multiple words may appear in each of surname and forename. If the
+    narrator has a single name, the surname is saved as NULL in the database.
+    """
     narrator_ids = []
-    for narrator in narrators:
-        narrator = narrator.strip()
-        if narrator != "":
-            narrator_id = db.narrator.save(narrator)
-            narrator_ids.append(narrator_id)
-    logger.debug(f"narrator ids: {narrator_ids}")
+    for narrator_string in narrator_strings:
+        logger.debug(f"narrator_string: '{narrator_string}'")
+        names = narrator_string.split(",")
+        if len(names) == 1:
+            forename = names[0]
+            surname = None
+        elif len(names) == 2:
+            surname = names[0]
+            forename = names[1]
+        else:
+            raise ValueError("Narrator name '{name_string}' formatted incorrectly with too many commas.")
+        if surname is not None:
+            surname = surname.strip()
+            if surname == "":
+                surname = None
+        forename = forename.strip()
+        if forename == "":
+            raise ValueError(f"The narrator's forename '{forename}' must not be empty.")
+        logger.debug(f"surname: '{surname}'")
+        logger.debug(f"forename: {forename}'")
+        narrator_id = db.narrator.save(surname, forename)
+        logger.debug(f"narrator ID: {narrator_id}")
+        narrator_ids.append(narrator_id)
     return narrator_ids
 
 
@@ -204,21 +262,33 @@ def save_note(user_id, book_id, csv_status, csv_finished_date,
     return note_id
 
 
-def save_translators(translators_str):
+def save_translators(translator_strings):
     """
-    Multiple translators are separated by "&".
-    No effort is made at this time to break translator names into
-    first name, middle name, and last name.
+    translatorstrings is a list of translators formatted as "surname, forename",
+    where multiple words may appear in each of surname and forename. If the
+    translator has a single name, the surname is saved as NULL in the database.
     """
-    logger.debug(f"translators_str: '{translators_str}'")
-    translators = translators_str.split(sep="&")
-    logger.debug(f"translators: {translators}")
+    logger.debug(f"translator_strings: '{translator_strings}'")
     translator_ids = []
-    for translator in translators:
-        translator = translator.strip()
-        if translator != "":
-            translator_id = db.translator.save(translator)
-            translator_ids.append(translator_id)
-    logger.debug(f"translator ids: {translator_ids}")
+    for translator_string in translator_strings:
+        logger.debug(f"translator_string: '{translator_string}'")
+        names = translator_string.split(",")
+        if len(names) == 1:
+            forename = names[0]
+        elif len(names) == 2:
+            surname = names[0]
+            forename = names[1]
+        else:
+            raise ValueError("Translator name '{name_string}' formatted incorrectly with too many commas.")
+        surname = surname.strip()
+        if surname == "":
+            surname = None
+        forename = forename.strip()
+        if forename == "":
+            raise ValueError(f"The translator's forename '{forename}' must not be empty.")
+        logger.debug(f"surname: '{surname}'")
+        logger.debug(f"forename: {forename}'")
+        translator_id = db.translator.save(surname, forename)
+        logger.debug(f"translator ID: {translator_id}")
+        translator_ids.append(translator_id)
     return translator_ids
-

@@ -20,8 +20,8 @@ def create_table():
             id INTEGER PRIMARY KEY,
             surname TEXT NULL,
             forename TEXT NOT NULL,
-            UNIQUE (surname, forename)
-        ) strict
+            UNIQUE(surname, forename)
+        ) STRICT
     """
     conn.conn.execute(sql_create_table)
 
@@ -47,6 +47,7 @@ def insert(surname, forename):
     """
     cur = conn.conn.execute(sql_insert, (surname, forename,))
     author_id = cur.lastrowid
+    cur.close()
     logger.debug(f"New author_id: {author_id}")
     return author_id
 
@@ -56,9 +57,6 @@ def save(surname, forename):
     If the author exists, select the existing author_id.
     Otherwise, insert the author and get the new author_id.
     Return the author_id.
-
-    This method is used during initial loading of the data
-    from the CSV files.
     """
     logger.debug(f"surname: '{surname}'")
     logger.debug(f"forename: '{forename}'")
@@ -77,17 +75,17 @@ def select_id(surname, forename):
     logger.debug(f"surname: '{surname}'")
     logger.debug(f"forename: '{forename}'")
     cur = conn.conn.cursor()
-    if forename is None:
+    if surname is None:
         sql_select_id = """
             SELECT
                 tbl_author.id
             FROM
                 tbl_author
             WHERE
-                tbl_author.surname = ?
-                AND tbl_author.forename IS NULL
+                tbl_author.forename = ?
+                AND tbl_author.surname IS NULL
         """
-        cur.execute(sql_select_id, (surname,))
+        cur.execute(sql_select_id, (forename,))
     else:
         sql_select_id = """
             SELECT
@@ -100,6 +98,7 @@ def select_id(surname, forename):
         """
         cur.execute(sql_select_id, (surname, forename))
     db_row = cur.fetchone()
+    cur.close()
     logger.debug(f"Returned row: {db_row}")
     author_id = None
     if db_row is not None:

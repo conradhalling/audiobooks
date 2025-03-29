@@ -22,7 +22,7 @@ def create_table():
             audio_pub_date TEXT,
             hours INTEGER NOT NULL,
             minutes INTEGER NOT NULL
-        ) strict
+        ) STRICT
     """
     conn.conn.execute(sql_create_table)
 

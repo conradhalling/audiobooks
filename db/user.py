@@ -23,7 +23,7 @@ def create_table():
             username TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL,
             password_hash TEXT NOT NULL
-        ) strict
+        ) STRICT
     """
     conn.conn.execute(sql_create_table)
 
