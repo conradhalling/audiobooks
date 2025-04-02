@@ -80,6 +80,14 @@ const DOWN_ARROW = "⭣";
 const UP_DOWN_ARROW = "⭥";
 
 window.onload = function () {
+  // Initialize the event listeners for sorting table rows and for
+  // filtering table rows.
+  initSortTableRows();
+  initFilterTableRows();
+};
+
+
+function initSortTableRows() {
   document.querySelectorAll('th').forEach((th_element) => {
     th_element.addEventListener('click', function () {
       // Get the table that is the parent of this th element.
@@ -189,4 +197,45 @@ window.onload = function () {
       }
     });
   });
-};
+}
+
+
+function initFilterTableRows() {
+  // Add an event listener to each of the three inputs of type checkbox.
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+  for (const checkbox of checkboxes) {
+    checkbox.addEventListener('click', filterTableRows);
+  }
+}
+
+
+function filterTableRows(event) {
+  // The input[type="checkbox"] elements have IDs 'new', 'started', and
+  // 'finished'. The table rows have classes of 'new', 'started', and
+  // 'finished'. Toggle the display of the table rows where the class
+  // matches the ID of the checkbox.
+
+  // Get the table element.
+  const table = document.getElementById("audiobooks");
+
+  // Use the checked attribute to determine whether to hide or display
+  // the matching table rows.
+  let display;
+  if (event.target.checked) {
+    display = "table-row";
+  }
+  else {
+    display = "none";
+  }
+
+  // Iterate through table rows.
+  const tr_elements = table.querySelectorAll("tbody tr");
+  for (const tr_element of tr_elements) {
+    if (event.target.id === tr_element.className) {
+      tr_element.style.display = display;
+    }
+  }
+
+  // Prevent the event from bubbling upwards through the DOM.
+  event.stopPropagation();
+}

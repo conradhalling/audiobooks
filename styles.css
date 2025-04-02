@@ -2,6 +2,7 @@
   --color-000: hsl(210 40   0);
   --color-005: hsl(210 40   5);
   --color-010: hsl(210 40  10);
+  --color-013: hsl(210 40  13);
   --color-015: hsl(210 40  15);
   --color-020: hsl(210 40  20);
   --color-025: hsl(210 40  25);
@@ -11,6 +12,7 @@
   --color-080: hsl(210 40  80);
   --color-085: hsl(210 40  85);
   --color-090: hsl(210 40  90);
+  --color-092: hsl(210 40  92);
   --color-095: hsl(210 40  95);
   --color-100: hsl(210 40 100);
 
@@ -40,6 +42,11 @@ h2 {
 p {
   max-width: 40rem;
   font-size: larger;
+}
+
+p.filters {
+  font-family: Verdana, sans-serif;
+  font-size: smaller;
 }
 
 header {
@@ -85,7 +92,7 @@ header {
         margin-right: 2rem;
 
         a, a:hover {
-          color: hsl(210 40 25);
+          color: var(--color-025);
         }
       }
 
@@ -97,17 +104,13 @@ header {
 }
 
 main {
+  width: fit-content;
   margin-left: auto;
   margin-right: auto;
-  width: fit-content;
-}
-
-div.table-filtered {
-  font-family: Verdana, sans-serif;
 }
 
 table {
-  table-layout: fixed;
+  font-family: Verdana, sans-serif;
   border-collapse: collapse;
   border: 3px solid var(--color-090);
   line-height: 1rem;
@@ -115,39 +118,14 @@ table {
   margin-right: auto;
 }
 
-table > caption {
-  text-align: left;
-  font-family: Verdana;
-}
-
-/*
-  Filter rows of table.filterable:
-*/
-input#new:checked~table.filterable tbody tr.new {
-  display: table-row;
-}
-
-input#started:checked~table.filterable tbody tr.started {
-  display: table-row;
-}
-
-input#finished:checked~table.filterable tbody tr.finished {
-  display: table-row;
-}
-
-table.filterable tbody tr {
-  display: none;
-}
-
 tr th {
   background-color: var(--color-085);
 }
 
 tbody > tr:nth-child(even) {
-background-color: hsl(210 40  92);
+background-color: var(--color-092);
 }
 
-/* Don't alternate row colors for vertical tables. */
 tbody.vertical tr:nth-child(even) {
   background-color: var(--color-095);
 }
@@ -155,10 +133,9 @@ tbody.vertical tr:nth-child(even) {
 th,
 td {
   border: 1px solid var(--color-090);
-  font-family: Verdana;
   font-size: 0.75rem;
   padding: 3px 6px;
-  max-width: 20rem;
+  max-width: 15rem;
   vertical-align: top;
 }
 
@@ -175,6 +152,10 @@ th.sortable:hover {
   text-align: right;
 }
 
+.nowrap {
+  white-space: nowrap;
+}
+
 td a,
 td a:visited {
   color: var(--color-000);
@@ -186,7 +167,6 @@ td a:visited:hover {
   color: var(--color-030);
   text-decoration: underline;
 }
-
 
 p a {
   color: var(--color-025);
@@ -220,8 +200,9 @@ p a:hover {
         }
 
         li.logo {
-          a, a:hover {
-            color: hsl(210 40 75);
+          a, 
+          a:hover {
+            color: var(--color-075);
           }
         }
       }
@@ -237,11 +218,9 @@ p a:hover {
   }
 
   tbody > tr:nth-child(even) {
-    /* background-color: var(--color-015); */
-    background-color: hsl(210 40  12);
+    background-color: var(--color-013);
   }
 
-  /* Don't alternate row colors for vertical tables. */
   tbody.vertical tr:nth-child(even) {
     background-color: var(--color-010);
   }
