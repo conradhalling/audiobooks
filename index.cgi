@@ -744,7 +744,7 @@ def create_start_html():
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Audiobooks</title>
             <link rel="stylesheet" href="styles.css">
-            <script src="sort_table.js"></script>
+            <script src="js/main.js" type="module"></script>
           </head>
           <body>
             <header>
