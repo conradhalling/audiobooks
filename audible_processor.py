@@ -186,6 +186,7 @@ def save_authors(author_strings):
         logger.debug(f"author_string: '{author_string}'")
         names = author_string.split(",")
         if len(names) == 1:
+            surname = ""
             forename = names[0]
         elif len(names) == 2:
             surname = names[0]
