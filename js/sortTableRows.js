@@ -78,7 +78,7 @@
 // - https://github.com/VFDouglas/HTML-Order-Table-By-Column/blob/main/index.html
 
 
-export function sortTableRows(event) {
+function sortTableRows(event) {
     const UP_ARROW = "⭡";
     const DOWN_ARROW = "⭣";
     const UP_DOWN_ARROW = "⭥";
@@ -191,3 +191,5 @@ export function sortTableRows(event) {
     }
     event.stopPropagation();
 }
+
+export { sortTableRows };

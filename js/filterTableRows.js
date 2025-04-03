@@ -3,7 +3,7 @@
 // 'started', or 'finished'. Toggle the display of the table rows where the
 // class matches the ID of the checkbox that received the click event.
 
-export function filterTableRows(event) {
+function filterTableRows(event) {
     // Use the checked attribute to determine whether to hide or display
     // the matching table rows.
     let display;
@@ -24,3 +24,5 @@ export function filterTableRows(event) {
     }
     event.stopPropagation();
 }
+
+export { filterTableRows };
