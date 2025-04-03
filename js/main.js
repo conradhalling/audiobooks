@@ -1,5 +1,5 @@
-import { filterTableRows } from "./modules/filterTableRows";
-import { sortTableRows } from "./modules/sortTableRows";
+import { filterTableRows } from "./filterTableRows.js";
+import { sortTableRows } from "./sortTableRows.js";
 
 
 window.addEventListener('load', function (event) {
