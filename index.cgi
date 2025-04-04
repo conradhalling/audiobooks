@@ -327,7 +327,7 @@ def get_title_sort_key(title):
 
 def create_about_html():
     html = """\
-    <h1>About Audiobooks</h1>
+    <h1>About This Website</h1>
     <p>
       I have been recording the audiobooks I’ve listened to in an Excel
       spreadsheet since May, 2008. But a spreadsheet does a poor job of handling
@@ -544,7 +544,7 @@ def create_book_html(book):
     # with an accompanying table, and an h2 Listener Notes header with an
     # accompanying table.
     html = ''
-    html += f'      <h1><cite>{book["title"]}</cite><br>by {by_authors_string}</h1>'
+    html += f'      <h1><cite>{book["title"]}</cite><br>by {by_authors_string}</h1>\n'
     html += '      <h2>Book Information</h2>\n'
     html += '      <table>\n'
     html += '        <tbody class="vertical">\n'
@@ -786,7 +786,7 @@ def create_start_html(body_class="tables"):
                 </ul>
               </nav>
             </header>
-            <main style="margin-top: 50px">
+            <main class="{body_class}">
         """
     return textwrap.dedent(start_html)
 

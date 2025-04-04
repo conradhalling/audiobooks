@@ -50,8 +50,8 @@ header {
     width: fit-content;
     background-color: var(--color-095);
     margin-left: 2rem;
-    /* margin-left: auto;
-    margin-right: auto; */
+    margin-left: auto;
+    margin-right: auto;
 
     ul {
       font-family: Verdana, sans-serif;
@@ -91,8 +91,23 @@ header {
   }
 }
 
+main {
+  margin-top: 50px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main.tables {
+  max-width: 60rem;
+}
+
+main.about {
+  max-width: 40rem;
+}
+
 h1, h2 {
   font-family: Verdana, sans-serif;
+  text-align: center;
 }
 
 h1 {
@@ -108,7 +123,6 @@ h2 {
 */
 
 p {
-  max-width: 40rem;
   font-size: larger;
 }
 
@@ -137,6 +151,8 @@ table {
   border-collapse: collapse;
   border: 1px solid var(--color-090);
   line-height: 1rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 th {
@@ -154,7 +170,7 @@ tbody.vertical tr:nth-child(even) {
 
 th,
 td {
-  padding: 2px 4px;
+  padding: 2px 5px;
   vertical-align: top;
 }
 
@@ -187,8 +203,7 @@ td a:visited:hover {
   text-decoration: underline;
 }
 
-
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 45rem) {
   /*
     In a narrow viewport, when the body contains tables, reduce the margins to
     maximize room for displaying the data. Shrink the size of the font used for
@@ -206,23 +221,8 @@ td a:visited:hover {
     Hide columns of the audiobooks table when the viewport is narrow.
   */
 
-  #audiobooks th:nth-child(4),
-  #audiobooks td:nth-child(4) {
-    display: none;
-  }
-
-  #audiobooks th:nth-child(5),
-  #audiobooks td:nth-child(5) {
-    display: none;
-  }
-
-  #audiobooks th:nth-child(6),
-  #audiobooks td:nth-child(6) {
-    display: none;
-  }
-
-  #audiobooks th:nth-child(7),
-  #audiobooks td:nth-child(7) {
+  #audiobooks th:nth-child(n+4),
+  #audiobooks td:nth-child(n+4) {
     display: none;
   }
 
@@ -230,28 +230,30 @@ td a:visited:hover {
     Hide columns of the authors table when the viewport is narrow.
   */
 
-  #authors th:nth-child(3),
-  #authors td:nth-child(3) {
+  #authors th:nth-child(n+4),
+  #authors td:nth-child(n+4) {
     display: none;
   }
+}
 
-  #authors th:nth-child(4),
-  #authors td:nth-child(4) {
+@media screen and (max-width: 50rem) {
+  /*
+    Hide columns of the authors table when the viewport is narrow.
+  */
+
+  #authors th:nth-child(n+5),
+  #authors td:nth-child(n+5) {
     display: none;
   }
+}
 
-  #authors th:nth-child(5),
-  #authors td:nth-child(5) {
-    display: none;
-  }
+@media screen and (max-width: 55rem) {
+  /*
+    Hide columns of the authors table when the viewport is narrow.
+  */
 
-  #authors th:nth-child(6),
-  #authors td:nth-child(6) {
-    display: none;
-  }
-
-  #authors th:nth-child(7),
-  #authors td:nth-child(7) {
+  #authors th:nth-child(n+7),
+  #authors td:nth-child(n+7) {
     display: none;
   }
 }
