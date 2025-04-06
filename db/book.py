@@ -69,7 +69,7 @@ def save(title, book_pub_date, audio_pub_date, hours, minutes):
     book_id = select_id(title)
     if book_id is None:
         book_id = insert(title, book_pub_date, audio_pub_date, hours, minutes)
-    logger.debug(f"book_id for title {title}: {book_id}")
+    logger.debug(f"book_id for title '{title}': {book_id}")
     return book_id
 
 

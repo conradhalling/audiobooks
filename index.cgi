@@ -15,9 +15,36 @@ import textwrap
 import dotenv
 dotenv.load_dotenv()
 
+########## Configuration code.
+
+def get_index_path():
+    """
+    Return the webserver's path to the index.cgi script, using the
+    AUDIOBOOKS_WEBDIR environment variable.
+    """
+    index_path = f"{os.environ.get('AUDIOBOOKS_WEBDIR')}index.cgi"
+    return index_path
+
+
+def get_js_dir_path():
+    """
+    Return the webserver's path to the js directory, using the
+    AUDIOBOOKS_WEBDIR environment variable.
+    """
+    js_dir_path = f"{os.environ.get('AUDIOBOOKS_WEBDIR')}js/"
+    return js_dir_path
+
+
+def get_styles_path():
+    """
+    Return the webserver's path to the styles.css file, using the
+    AUDIOBOOKS_WEBDIR environment variable.
+    """
+    styles_path = f"{os.environ.get('AUDIOBOOKS_WEBDIR')}styles.css"
+    return styles_path
+
 
 ########## Database interaction code
-
 
 def connect():
     db_file = os.environ.get("SQLITE3_DB")
@@ -190,6 +217,67 @@ def select_books_for_author(conn, author_id):
     return result_set
 
 
+def select_books_for_narrator(conn, narrator_id):
+    sql_select_books_for_narrator = """
+        SELECT
+            tbl_book.title,
+            tbl_book.book_pub_date,
+            tbl_book.audio_pub_date,
+            tbl_book.hours,
+            tbl_book.minutes,
+            tbl_book.id
+        FROM
+            tbl_book
+            INNER JOIN tbl_book_narrator
+                ON tbl_book.id = tbl_book_narrator.book_id
+        WHERE
+            tbl_book_narrator.narrator_id = ?
+    """
+    cur = conn.execute(sql_select_books_for_narrator, (narrator_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
+def select_books_for_translator(conn, translator_id):
+    sql_select_books_for_translator = """
+        SELECT
+            tbl_book.title,
+            tbl_book.book_pub_date,
+            tbl_book.audio_pub_date,
+            tbl_book.hours,
+            tbl_book.minutes,
+            tbl_book.id
+        FROM
+            tbl_book
+            INNER JOIN tbl_book_translator
+                ON tbl_book.id = tbl_book_translator.book_id
+        WHERE
+            tbl_book_translator.translator_id = ?
+    """
+    cur = conn.execute(sql_select_books_for_translator, (translator_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
+def select_narrator(conn, narrator_id):
+    sql_select_narrator = """
+        SELECT
+            tbl_narrator.id,
+            tbl_narrator.surname,
+            tbl_narrator.forename
+        FROM
+            tbl_narrator
+        WHERE
+            tbl_narrator.id = ?
+    """
+    cur = conn.execute(sql_select_narrator, (narrator_id,))
+    result_set = cur.fetchone()
+    cur.close()
+    return result_set
+
+
 def select_narrators_for_book(conn, book_id):
     sql_select_narrators_for_book = """
         SELECT
@@ -233,6 +321,23 @@ def select_notes_for_book(conn, book_id):
     """
     cur = conn.execute(sql_select_notes_for_book, (book_id,))
     result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
+def select_translator(conn, translator_id):
+    sql_select_translator = """
+        SELECT
+            tbl_translator.id,
+            tbl_translator.surname,
+            tbl_translator.forename
+        FROM
+            tbl_translator
+        WHERE
+            tbl_translator.id = ?
+    """
+    cur = conn.execute(sql_select_translator, (translator_id,))
+    result_set = cur.fetchone()
     cur.close()
     return result_set
 
@@ -325,6 +430,17 @@ def get_title_sort_key(title):
 ########## HTML generation code
 
 
+def create_404_html():
+    html = """\
+    <h1>404: Page Not Found</h1>
+    <p>
+      Sorry, we've misplaced that URL or it's pointing to something that doesn't
+      exist.
+    </p>
+    """
+    return html
+
+
 def create_about_html():
     html = """\
     <h1>About This Website</h1>
@@ -355,6 +471,8 @@ def create_about_html():
 
 
 def create_all_authors_table_html(conn):
+    index_path = get_index_path()
+
     # Get authors' forenames and surnames and combine them into a
     # case-dependent sort key and a full name.
     authors_result_set = select_authors(conn)
@@ -417,11 +535,11 @@ def create_all_authors_table_html(conn):
 
             html += '          <tr>\n'
             if first_tr:
-                html += f'            <td class="nowrap"><a href="index.cgi?author_id={author_id}">{author_name}</a></td>\n'
+                html += f"""            <td class="nowrap"><a href="{index_path}?author_id={author_id}">{author_name}</a></td>\n"""
                 first_tr = False
             else:
                 html += '          <td></td>\n'
-            html += f'            <td><a href="index.cgi?book_id={book_id}">{title}</a></td>\n'
+            html += f"""            <td><a href="{index_path}?book_id={book_id}">{title}</a></td>\n"""
             html += f'            <td class="nowrap">{rating}</td>\n'
             html += create_authors_td_html(conn, book_id)
             html += f'            <td class="right">{length}</td>\n'
@@ -461,6 +579,8 @@ def create_authors_td_html(conn, book_id):
     td element. When there are multiple authors, use the first author as
     the sort key.
     """
+    index_path = get_index_path()
+
     data_rows = select_authors_for_book(conn, book_id)
     author_strings = []
     first_author = True
@@ -470,7 +590,7 @@ def create_authors_td_html(conn, book_id):
         if first_author:
             author_name_sort_key = get_author_name_sort_key(author_surname, author_forename)
             first_author = False
-        author_string = f'<a href="?author_id={author_id}">{author_name}</a>'
+        author_string = f'<a href="{index_path}?author_id={author_id}">{author_name}</a>'
         author_strings.append(author_string)
     html = f'            <td data-sortkey="{author_name_sort_key}" class="nowrap">{"<br>".join(author_strings)}</td>\n'
     return html
@@ -481,6 +601,8 @@ def create_book_html(book):
     Book is dict from which all information about an audiobook can
     be extracted.
     """
+    index_path = get_index_path()
+
     # Precompute cell values.
     length = "" if book["hours"] is None else f'{book["hours"]}:{book["minutes"]:02d}'
     book_pub_date = "" if book["book_pub_date"] is None else book["book_pub_date"]
@@ -499,7 +621,7 @@ def create_book_html(book):
             author_name = author_forename
         else:
             author_name = f"{author_forename} {author_surname}"
-        author_html_string = f'<a href="?author_id={author_id}">{author_name}</a>'
+        author_html_string = f'<a href="{index_path}?author_id={author_id}">{author_name}</a>'
         author_html_strings.append(author_html_string)
         author_strings.append(author_name)
     
@@ -512,7 +634,7 @@ def create_book_html(book):
             translator_name = translator_forename
         else:
             translator_name = translator_forename + " " + translator_surname
-        translator_string = f'<a href="?translator_id={translator_id}">{translator_name}</a>'
+        translator_string = f'<a href="{index_path}?translator_id={translator_id}">{translator_name}</a>'
         translator_html_strings.append(translator_string)
 
     narrator_html_strings = []
@@ -524,7 +646,7 @@ def create_book_html(book):
             narrator_name = narrator_forename
         else:
             narrator_name = narrator_forename + " " + narrator_surname
-        narrator_string = f'<a href="?narrator_id={narrator_id}">{narrator_name}</a>'
+        narrator_string = f'<a href="{index_path}?narrator_id={narrator_id}">{narrator_name}</a>'
         narrator_html_strings.append(narrator_string)
 
     # Build the by authors string for the header.
@@ -540,12 +662,12 @@ def create_book_html(book):
                 by_authors_string += ", and " + author_strings[author_count]
                 author_flag = False
 
-    # Build and return HTML containing an h1 header, an h2 Book Information header
+    # Build and return HTML containing an h1 header, an h2 Audiobook Information header
     # with an accompanying table, and an h2 Listener Notes header with an
     # accompanying table.
     html = ''
     html += f'      <h1><cite>{book["title"]}</cite><br>by {by_authors_string}</h1>\n'
-    html += '      <h2>Book Information</h2>\n'
+    html += '      <h2>Audiobook Information</h2>\n'
     html += '      <table>\n'
     html += '        <tbody class="vertical">\n'
 
@@ -684,6 +806,8 @@ def create_sortable_books_table_html(conn, books_result_set, filterable=False):
     The all books table is filterable.
     The books table associated with an author is not filterable or hideable.
     """
+    index_path = get_index_path()
+
     th_tool_tip = "Click this header to sort the table by the values in this column."
     html = ''
     if filterable:
@@ -739,7 +863,7 @@ def create_sortable_books_table_html(conn, books_result_set, filterable=False):
 
         # Create table rows for all books, reporting only the first finished date.
         html += f'          <tr class="{status.lower()}">\n'
-        html += f'            <td data-sortkey="{title_sort_key}"><a href="?book_id={book_id}">{title}</a></td>\n'
+        html += f'            <td data-sortkey="{title_sort_key}"><a href="{index_path}?book_id={book_id}">{title}</a></td>\n'
         html += create_authors_td_html(conn, book_id)
         html += f'            <td class="nowrap">{rating}</td>\n'
         html += f'            <td data-sortkey="{length_sort_key}" class="right">{length}</td>\n'
@@ -760,24 +884,30 @@ def create_start_html(body_class="tables"):
 
     body_class is "about" when the about page is displayed; there is
     sufficient room on the page that the margins can remain the same.
+
+    This function requires the AUDIOBOOKS_WEBDIR environment variable
+    for determing the locations of styles.css and js/main.js.
     """
+    index_path = get_index_path()
+    js_dir_path = get_js_dir_path()
+    styles_path = get_styles_path()
     start_html = fr"""        <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Audiobooks</title>
-            <link rel="stylesheet" href="styles.css">
-            <script src="js/main.js" type="module"></script>
+            <link rel="stylesheet" href="{styles_path}">
+            <script src="{js_dir_path}main.js" type="module"></script>
           </head>
           <body class="{body_class}">
             <header>
               <nav>
                 <ul>
-                  <li class="logo" style="min-width: 13rem;"><a href="index.cgi">🎧<em>Audio</em>books📚</a></li>
-                  <li><a href="index.cgi">Audiobooks</a></li>
-                  <li><a href="index.cgi?authors=all">Authors</a></li>
-                  <li><a href="index.cgi?about=about">About</a></li>
+                  <li class="logo" style="min-width: 13rem;"><a href="{index_path}">🎧<em>Audio</em>books📚</a></li>
+                  <li><a href="{index_path}">Audiobooks</a></li>
+                  <li><a href="{index_path}?authors">Authors</a></li>
+                  <li><a href="{index_path}?about">About</a></li>
                   <li class="blog"><a href="https://conradhalling.com/blog/">Blog</a></li>
                   <!--
                   <li><a href="new.cgi">New</a></li>
@@ -795,9 +925,14 @@ def create_start_html(body_class="tables"):
 
 
 def get_book_data(conn, book_id):
+    """
+    Return None if the book_id is not in the database.
+    Otherwise, return a dict containing the book's information.
+    """
     book_rs = select_book(conn, book_id)
-    if book_rs is None:
-        raise ValueError(f"Found no information for book ID {book_id}.")
+    if len(book_rs) == 0:
+        return None
+
     (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes,) = book_rs[0]
     book_dict = {
         "book_id": db_book_id,
@@ -880,6 +1015,13 @@ def get_book_data(conn, book_id):
 
 ########## Display code.
 
+def display_404_not_found():
+    html = create_start_html(body_class="about")
+    html += create_404_html()
+    html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
+    print(html)
+
 
 def display_about():
     html = create_start_html(body_class="about")
@@ -911,14 +1053,18 @@ def display_all_books(conn):
 
 def display_author(conn, author_id):
     html = create_start_html(body_class="tables")
-    author_id, author_surname, author_forename = select_author(conn, author_id)
-    if author_surname is None:
-        author_name = author_forename
+    rs = select_author(conn, author_id)
+    if rs is None:
+        html += f'    <h1>Author ID {author_id} Not Found</h1>\n'
     else:
-        author_name = author_forename + " " + author_surname
-    html += f'    <h1>Audiobooks by {author_name}</h1>\n'
-    books_for_author_rs = select_books_for_author(conn, author_id)
-    html += create_sortable_books_table_html(conn, books_for_author_rs)
+        author_id, author_surname, author_forename = rs
+        if author_surname is None:
+            author_name = author_forename
+        else:
+            author_name = author_forename + " " + author_surname
+        html += f'    <h1>Audiobooks by {author_name}</h1>\n'
+        books_for_author_rs = select_books_for_author(conn, author_id)
+        html += create_sortable_books_table_html(conn, books_for_author_rs)
     html += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
@@ -927,7 +1073,48 @@ def display_author(conn, author_id):
 def display_book(conn, book_id):
     html = create_start_html(body_class="tables")
     book = get_book_data(conn, book_id)
-    html += create_book_html(book)
+    if book is None:
+        html += f'    <h1>Book ID {book_id} Not Found</h1>\n'
+    else:
+        html += create_book_html(book)
+    html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
+    print(html)
+
+
+def display_narrator(conn, narrator_id):
+    html = create_start_html(body_class="tables")
+    rs = select_narrator(conn, narrator_id)
+    if rs is None:
+        html += f'    <h1>Narrator ID {narrator_id} Not Found</h1>\n'
+    else:
+        narrator_id, narrator_surname, narrator_forename = rs
+        if narrator_surname is None:
+            narrator_name = narrator_forename
+        else:
+            narrator_name = narrator_forename + " " + narrator_surname
+        html += f'    <h1>Audiobooks Narrated by {narrator_name}</h1>\n'
+        books_for_narrator_rs = select_books_for_narrator(conn, narrator_id)
+        html += create_sortable_books_table_html(conn, books_for_narrator_rs)
+    html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
+    print(html)
+
+
+def display_translator(conn, translator_id):
+    html = create_start_html(body_class="tables")
+    rs = select_translator(conn, translator_id)
+    if rs is None:
+        html += f'    <h1>Translator ID {translator_id} Not Found</h1>\n'
+    else:
+        translator_id, translator_surname, translator_forename = rs
+        if translator_surname is None:
+            translator_name = translator_forename
+        else:
+            translator_name = translator_forename + " " + translator_surname
+        html += f'    <h1>Audiobooks Translated by {translator_name}</h1>\n'
+        books_for_translator_rs = select_books_for_translator(conn, translator_id)
+        html += create_sortable_books_table_html(conn, books_for_translator_rs)
     html += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
@@ -944,15 +1131,21 @@ def main():
     try:
         conn = None
         conn = connect()
-        fs = cgi.FieldStorage()
-        if "author_id" in fs:
-            display_author(conn, fs["author_id"].value)
-        elif "book_id" in fs:
-            display_book(conn, fs["book_id"].value)
-        elif "authors" in fs:
-            display_all_authors(conn)
+        fs = cgi.FieldStorage(keep_blank_values=True)
+        if "404" in fs:
+            display_404_not_found()
         elif "about" in fs:
             display_about()
+        elif "author_id" in fs:
+            display_author(conn, fs["author_id"].value)
+        elif "authors" in fs:
+            display_all_authors(conn)
+        elif "book_id" in fs:
+            display_book(conn, fs["book_id"].value)
+        elif "narrator_id" in fs:
+            display_narrator(conn, fs["narrator_id"].value)
+        elif "translator_id" in fs:
+            display_translator(conn, fs["translator_id"].value)
         else:
             display_all_books(conn)
     except Exception:
