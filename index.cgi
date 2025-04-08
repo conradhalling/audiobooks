@@ -366,6 +366,8 @@ def select_translators_for_book(conn, book_id):
 
 def get_audiobook_length(hours, minutes):
     """
+    Deprecated.
+
     Return a string containing hours and minutes as "hh:mm".
     """
     length = f"{hours}:{minutes:02d}"
@@ -397,15 +399,15 @@ def get_author_name_sort_key(surname, forename):
     return sort_key
 
 
-def get_rating(rating_stars, rating_description):
+def get_rating(note):
     """
     Return a rating string that is a combination of the rating_stars
     and rating_description values. Return an empty string if these
     are None.
     """
     rating = ""
-    if rating_stars is not None:
-        rating = str(rating_stars) + " " + rating_description
+    if note["rating_stars"] is not None:
+        rating = str(note["rating_stars"]) + " " + note["rating_description"]
     return rating
 
 
@@ -529,9 +531,11 @@ def create_all_authors_table_html(conn):
             finish_date = rs[0][2]
             if finish_date is None:
                 finish_date = ""
-            rating_stars = rs[0][3]
-            rating_description = rs[0][4]
-            rating = get_rating(rating_stars, rating_description)
+            
+            note = {}
+            note["rating_stars"] = rs[0][3]
+            note["rating_description"] = rs[0][4]
+            rating = get_rating(note)
 
             html += '          <tr>\n'
             if first_tr:
@@ -573,8 +577,21 @@ def create_all_books_table_html(conn, books_result_set):
     return html
 
 
+def create_author_html(author):
+    """
+    author is a dict containing information about the author and the books the
+    author has written.
+    """
+    html = ""
+    html += f'    <h1>Audiobooks Narrated by {author["author_name"]}</h1>\n'
+    html += create_sortable_books_table_html2(author["books"])
+    return html
+
+
 def create_authors_td_html(conn, book_id):
     """
+    Deprecated.
+
     Given a book_id, select the authors and format them with links in a
     td element. When there are multiple authors, use the first author as
     the sort key.
@@ -613,7 +630,7 @@ def create_authors_td_html2(authors):
     html = f'            <td data-sortkey="{author_name_sort_key}" class="nowrap">{"<br>".join(author_strings)}</td>\n'
     return html
 
-    
+
 def create_book_html(book):
     """
     Book is dict from which all information about an audiobook can
@@ -827,20 +844,17 @@ def create_narrator_html(narrator):
     """
     narrator is a dict containing information about the narrator and the books the
     narrator has narrated.
-
-    narrator is None if the narrator's ID is not in the database.
     """
     html = ""
-    if narrator is None:
-        html += f'    <h1>Narrator ID {narrator["id"]} Not Found</h1>\n'
-    else:
-        html += f'    <h1>Audiobooks Narrated by {narrator["narrator_name"]}</h1>\n'
-        html += create_sortable_books_table_html2(narrator["books"])
+    html += f'    <h1>Audiobooks Narrated by {narrator["narrator_name"]}</h1>\n'
+    html += create_sortable_books_table_html2(narrator["books"])
     return html
 
 
 def create_sortable_books_table_html(conn, books_result_set, filterable=False):
     """
+    Deprecated.
+
     The all books table is filterable.
     The books table associated with an author is not filterable or hideable.
     """
@@ -895,9 +909,11 @@ def create_sortable_books_table_html(conn, books_result_set, filterable=False):
         finish_date = rs[0][2]
         if finish_date is None:
             finish_date = ""
-        rating_stars = rs[0][3]
-        rating_description = rs[0][4]
-        rating = get_rating(rating_stars, rating_description)
+
+        note = {}
+        note["rating_stars"] = rs[0][3]
+        note["rating_description"] = rs[0][4]
+        rating = get_rating(note)
 
         # Create table rows for all books, reporting only the first finished date.
         html += f'          <tr class="{status.lower()}">\n'
@@ -1016,19 +1032,45 @@ def create_translator_html(translator):
     """
     translator is a dict containing information about the translator and the books the
     translator has translated.
-
-    translator is None if the translator's ID is not in the database.
     """
     html = ""
-    if translator is None:
-        html += f'    <h1>Translator ID {translator["id"]} Not Found</h1>\n'
-    else:
-        html += f'    <h1>Audiobooks Translated by {translator["translator_name"]}</h1>\n'
-        html += create_sortable_books_table_html2(translator["books"])
+    html += f'    <h1>Audiobooks Translated by {translator["translator_name"]}</h1>\n'
+    html += create_sortable_books_table_html2(translator["books"])
     return html
 
 
 ########## Get data code.
+
+
+def get_author_data(conn, author_id):
+    """
+    Return None if the author doesn't exist.
+    Otherwise, return a dict containing the author's data.
+    """
+    author = None
+    author_rs = select_author(conn, author_id)
+    if author_rs is not None:
+        # Store the attributes selected from the database.
+        id, surname, forename = author_rs
+        author = {"id": id, "surname": surname, "forename": forename}
+
+        # Compute an author_name attribute.
+        author_name = None
+        if author["surname"] is None:
+            author_name = author["forename"]
+        else:
+            author_name = author["forename"] + " " + author["surname"]
+        author["author_name"] = author_name
+
+        # Get the books written by the author and store the list as the
+        # books attribute.
+        author["books"] = []
+        books_for_author_rs = select_books_for_author(conn, author_id)
+        for book_rs in books_for_author_rs:
+            title, book_pub_date, audio_pub_date, hours, minutes, book_id = book_rs
+            book = get_book_data(conn, book_id)
+            author["books"].append(book)
+    return author
 
 
 def get_book_data(conn, book_id):
@@ -1120,16 +1162,12 @@ def get_book_data(conn, book_id):
     # Create computed attributes.
     # Create a key for sorting by title.
     book["title_sort_key"] = get_title_sort_key(book["title"])
-    # Convert hours and minutes to an hh:mm string.
-    book["length"] = \
-        get_audiobook_length(book["hours"], book["minutes"])
     # Create a key for sorting by length.
-    book["length_sort_key"] = book["length"]
+    book["length_sort_key"] = 60 * int(book["hours"]) + int(book["minutes"])
+    # Convert hours and minutes to an hh:mm string.
+    book["length"] = f'{book["hours"]}:{book["minutes"]:02d}'
     # Get a combined rating for the book from the first notes record.
-    book["rating"] = \
-        get_rating(
-            book["notes"][0]["rating_stars"],
-            book["notes"][0]["rating_description"])
+    book["rating"] = get_rating(book["notes"][0])
     # Convert the finish_date to a string.
     book["finish_date_string"] = book["notes"][0]["finish_date"]
     if book["finish_date_string"] is None:
@@ -1238,19 +1276,12 @@ def display_all_books(conn):
 
 
 def display_author(conn, author_id):
+    author = get_author_data(conn, author_id)
     html = create_start_html(body_class="tables")
-    rs = select_author(conn, author_id)
-    if rs is None:
+    if author is None:
         html += f'    <h1>Author ID {author_id} Not Found</h1>\n'
     else:
-        author_id, author_surname, author_forename = rs
-        if author_surname is None:
-            author_name = author_forename
-        else:
-            author_name = author_forename + " " + author_surname
-        html += f'    <h1>Audiobooks by {author_name}</h1>\n'
-        books_for_author_rs = select_books_for_author(conn, author_id)
-        html += create_sortable_books_table_html(conn, books_for_author_rs)
+        html += create_author_html(author)
     html += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
@@ -1277,7 +1308,10 @@ def display_book(conn, book_id):
 def display_narrator(conn, narrator_id):
     narrator = get_narrator_data(conn, narrator_id)
     html = create_start_html(body_class="tables")
-    html += create_narrator_html(narrator)
+    if narrator is None:
+        html += f'    <h1>Narrator ID {narrator_id} Not Found</h1>\n'
+    else:
+        html += create_narrator_html(narrator)
     html += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
@@ -1286,7 +1320,10 @@ def display_narrator(conn, narrator_id):
 def display_translator(conn, translator_id):
     translator = get_translator_data(conn, translator_id)
     html = create_start_html(body_class="tables")
-    html += create_translator_html(translator)
+    if translator is None:
+        html += f'    <h1>Translator ID {translator_id} Not Found</h1>\n'
+    else:
+        html += create_translator_html(translator)
     html += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
