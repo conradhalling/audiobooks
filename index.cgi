@@ -138,6 +138,23 @@ def select_author(conn, author_id):
     return result_set
 
 
+def select_author_ids_for_book(conn, book_id):
+    sql_select_author_ids_for_book = """
+        SELECT
+            tbl_author.id
+        FROM
+            tbl_book_author
+            INNER JOIN tbl_author
+                ON tbl_book_author.author_id = tbl_author.id
+        WHERE
+            tbl_book_author.book_id = ?
+    """
+    cur = conn.execute(sql_select_author_ids_for_book, (book_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
 def select_authors_for_book(conn, book_id):
     sql_select_authors_for_book = """
         SELECT
@@ -176,6 +193,9 @@ def select_authors(conn):
 
 
 def select_book(conn, book_id):
+    """
+    Given a book's ID, select the book's attributes.
+    """
     sql_select_book = """
         SELECT
             tbl_book.id,
@@ -190,12 +210,32 @@ def select_book(conn, book_id):
             tbl_book.id = ?
     """
     cur = conn.execute(sql_select_book, (book_id,))
+    result_set = cur.fetchone()
+    cur.close()
+    return result_set
+
+
+def select_book_ids_for_author(conn, author_id):
+    sql_select_book_ids_for_author = """
+        SELECT
+            tbl_book.id
+        FROM
+            tbl_book
+            INNER JOIN tbl_book_author
+                ON tbl_book.id = tbl_book_author.book_id
+        WHERE
+            tbl_book_author.author_id = ?
+    """
+    cur = conn.execute(sql_select_book_ids_for_author, (author_id,))
     result_set = cur.fetchall()
     cur.close()
     return result_set
 
 
 def select_books_for_author(conn, author_id):
+    """
+    Deprecated.
+    """
     sql_select_books_for_author = """
         SELECT
             tbl_book.title,
@@ -217,14 +257,9 @@ def select_books_for_author(conn, author_id):
     return result_set
 
 
-def select_books_for_narrator(conn, narrator_id):
-    sql_select_books_for_narrator = """
+def select_book_ids_for_narrator(conn, narrator_id):
+    sql_select_book_ids_for_narrator = """
         SELECT
-            tbl_book.title,
-            tbl_book.book_pub_date,
-            tbl_book.audio_pub_date,
-            tbl_book.hours,
-            tbl_book.minutes,
             tbl_book.id
         FROM
             tbl_book
@@ -233,20 +268,15 @@ def select_books_for_narrator(conn, narrator_id):
         WHERE
             tbl_book_narrator.narrator_id = ?
     """
-    cur = conn.execute(sql_select_books_for_narrator, (narrator_id,))
+    cur = conn.execute(sql_select_book_ids_for_narrator, (narrator_id,))
     result_set = cur.fetchall()
     cur.close()
     return result_set
 
 
-def select_books_for_translator(conn, translator_id):
-    sql_select_books_for_translator = """
+def select_book_ids_for_translator(conn, translator_id):
+    sql_select_book_ids_for_translator = """
         SELECT
-            tbl_book.title,
-            tbl_book.book_pub_date,
-            tbl_book.audio_pub_date,
-            tbl_book.hours,
-            tbl_book.minutes,
             tbl_book.id
         FROM
             tbl_book
@@ -255,7 +285,7 @@ def select_books_for_translator(conn, translator_id):
         WHERE
             tbl_book_translator.translator_id = ?
     """
-    cur = conn.execute(sql_select_books_for_translator, (translator_id,))
+    cur = conn.execute(sql_select_book_ids_for_translator, (translator_id,))
     result_set = cur.fetchall()
     cur.close()
     return result_set
@@ -274,6 +304,23 @@ def select_narrator(conn, narrator_id):
     """
     cur = conn.execute(sql_select_narrator, (narrator_id,))
     result_set = cur.fetchone()
+    cur.close()
+    return result_set
+
+
+def select_narrator_ids_for_book(conn, book_id):
+    sql_select_narrator_ids_for_book = """
+        SELECT
+            tbl_narrator.id
+        FROM
+            tbl_book_narrator
+            INNER JOIN tbl_narrator
+                ON tbl_book_narrator.narrator_id = tbl_narrator.id
+        WHERE
+            tbl_book_narrator.book_id = ?
+    """
+    cur = conn.execute(sql_select_narrator_ids_for_book, (book_id,))
+    result_set = cur.fetchall()
     cur.close()
     return result_set
 
@@ -338,6 +385,23 @@ def select_translator(conn, translator_id):
     """
     cur = conn.execute(sql_select_translator, (translator_id,))
     result_set = cur.fetchone()
+    cur.close()
+    return result_set
+
+
+def select_translator_ids_for_book(conn, book_id):
+    sql_select_translator_ids_for_book = """
+        SELECT
+            tbl_translator.id
+        FROM
+            tbl_book_translator
+            INNER JOIN tbl_translator
+                ON tbl_book_translator.translator_id = tbl_translator.id
+        WHERE
+            tbl_book_translator.book_id = ?
+    """
+    cur = conn.execute(sql_select_translator_ids_for_book, (book_id,))
+    result_set = cur.fetchall()
     cur.close()
     return result_set
 
@@ -473,6 +537,9 @@ def create_about_html():
 
 
 def create_all_authors_table_html(conn):
+    """
+    Deprecated
+    """
     index_path = get_index_path()
 
     # Get authors' forenames and surnames and combine them into a
@@ -559,8 +626,6 @@ def create_all_authors_table_html(conn):
 def create_all_books_table_html(conn, books_result_set):
     """
     Create the HTML for all books.
-    
-    "⭥" is "\u2B65" or "&#x2B65;".
     """
     html =  '      <h1>Audiobooks</h1>\n'
     # html += '      <p class="filters" style="margin-bottom: 0;">\n'
@@ -580,10 +645,10 @@ def create_all_books_table_html(conn, books_result_set):
 def create_author_html(author):
     """
     author is a dict containing information about the author and the books the
-    author has written.
+    author has created.
     """
     html = ""
-    html += f'    <h1>Audiobooks Narrated by {author["author_name"]}</h1>\n'
+    html += f'    <h1>Audiobooks Created by {author["display_name"]}</h1>\n'
     html += create_sortable_books_table_html2(author["books"])
     return html
 
@@ -621,11 +686,11 @@ def create_authors_td_html2(authors):
     author_strings = []
     first_author = True
     for author in authors:
-        author_name = get_author_name(author["author_surname"], author["author_forename"])
         if first_author:
-            author_name_sort_key = get_author_name_sort_key(author["author_surname"], author["author_forename"])
+            # The sort key comes from the name of the first author.
+            author_name_sort_key = author["name_sort_key"]
             first_author = False
-        author_string = f'<a href="{index_path}?author_id={author["author_id"]}">{author_name}</a>'
+        author_string = f'<a href="{index_path}?author_id={author["id"]}">{author["reverse_name"]}</a>'
         author_strings.append(author_string)
     html = f'            <td data-sortkey="{author_name_sort_key}" class="nowrap">{"<br>".join(author_strings)}</td>\n'
     return html
@@ -846,7 +911,7 @@ def create_narrator_html(narrator):
     narrator has narrated.
     """
     html = ""
-    html += f'    <h1>Audiobooks Narrated by {narrator["narrator_name"]}</h1>\n'
+    html += f'    <h1>Audiobooks Narrated by {narrator["display_name"]}</h1>\n'
     html += create_sortable_books_table_html2(narrator["books"])
     return html
 
@@ -1034,7 +1099,7 @@ def create_translator_html(translator):
     translator has translated.
     """
     html = ""
-    html += f'    <h1>Audiobooks Translated by {translator["translator_name"]}</h1>\n'
+    html += f'    <h1>Audiobooks Translated by {translator["display_name"]}</h1>\n'
     html += create_sortable_books_table_html2(translator["books"])
     return html
 
@@ -1046,43 +1111,86 @@ def get_author_data(conn, author_id):
     """
     Return None if the author doesn't exist.
     Otherwise, return a dict containing the author's data.
+
+    The author attribues are:
+        id
+        surname
+        forename
+        display_name  -- forename + " " + surname
+        reverse_name  -- surname + ", " + forename
+        name_sort_key -- (surname + " " + forename).upper()
     """
     author = None
     author_rs = select_author(conn, author_id)
     if author_rs is not None:
         # Store the attributes selected from the database.
         id, surname, forename = author_rs
-        author = {"id": id, "surname": surname, "forename": forename}
+        author = {
+            "id": id,
+            "surname": surname,
+            "forename": forename
+        }
 
-        # Compute an author_name attribute.
-        author_name = None
+        # Compute the display_name attribute.
         if author["surname"] is None:
-            author_name = author["forename"]
+            author["display_name"] = author["forename"]
         else:
-            author_name = author["forename"] + " " + author["surname"]
-        author["author_name"] = author_name
+            author["display_name"] = author["forename"] + " " + author["surname"]
 
+        # Compute the reverse_name attribute.
+        if surname is None:
+            author["reverse_name"] = author["forename"]
+        else:
+            author["reverse_name"] = author["surname"] + ", " + author["forename"]
+
+        # Compute the name_sort_key attribute.
+        if surname is None:
+            name_sort_key = author["forename"].upper()
+        else:
+            name_sort_key = author["surname"] + " " + author["forename"]
+        author["name_sort_key"] = name_sort_key.upper() 
+    return author
+
+
+def get_author_data_with_books(conn, author_id):
+    """
+    Return None if the author doesn't exist.
+    Otherwise, return a dict containing the author's data.
+
+    The author attribues are:
+        id
+        surname
+        forename
+        display_name
+        reverse_name
+        name_sort_key
+        books -- a list of book dicts
+    """
+    author = get_author_data(conn, author_id)
+    if author is not None:
         # Get the books written by the author and store the list as the
         # books attribute.
         author["books"] = []
-        books_for_author_rs = select_books_for_author(conn, author_id)
-        for book_rs in books_for_author_rs:
-            title, book_pub_date, audio_pub_date, hours, minutes, book_id = book_rs
-            book = get_book_data(conn, book_id)
+        book_ids_rs = select_book_ids_for_author(conn, author_id)
+        for book_id_rs in book_ids_rs:
+            (book_id,) = book_id_rs
+            book = get_book_data2(conn, book_id)
             author["books"].append(book)
     return author
 
 
 def get_book_data(conn, book_id):
     """
+    Deprecated.
+
     Return None if the book_id is not in the database.
     Otherwise, return a dict containing the book's information.
     """
     book_rs = select_book(conn, book_id)
-    if len(book_rs) == 0:
+    if book_rs is None:
         return None
 
-    (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes,) = book_rs[0]
+    (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes,) = book_rs
     book = {
         "book_id": db_book_id,
         "title": title,
@@ -1175,33 +1283,147 @@ def get_book_data(conn, book_id):
     return book
 
 
+def get_book_data2(conn, book_id):
+    """
+    Return None if the book_id is not in the database.
+    Otherwise, return a dict containing the book's information.
+    """
+    book_rs = select_book(conn, book_id)
+    if book_rs is None:
+        return None
+
+    (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes,) = book_rs
+    book = {
+        "book_id": db_book_id,
+        "title": title,
+        "book_pub_date": book_pub_date,
+        "audio_pub_date": audio_pub_date,
+        "hours": hours,
+        "minutes": minutes,
+    }
+
+    author_ids_rs = select_author_ids_for_book(conn, book_id)
+    authors = []
+    for author_id_rs in author_ids_rs:
+        (author_id,) = author_id_rs
+        author = get_author_data(conn, author_id)
+        authors.append(author)
+    book["authors"] = authors
+
+    translator_ids_rs = select_translator_ids_for_book(conn, book_id)
+    translators = []
+    for translator_id_rs in translator_ids_rs:
+        (translator_id,) = translator_id_rs
+        translator = get_translator_data(conn, translator_id)
+        translators.append(translator)
+    book["translators"] = translators
+
+    narrator_ids_rs = select_narrator_ids_for_book(conn, book_id)
+    narrators = []
+    for narrator_id_rs in narrator_ids_rs:
+        (narrator_id,) = narrator_id_rs
+        narrator = get_narrator_data(conn, narrator_id)
+        narrators.append(narrator)
+    book["narrators"] = narrators
+
+    acquisition_rs = select_acquisition_for_book(conn, book_id)
+    row = acquisition_rs[0]
+    (username, acquisition_id, vendor_name, acquisition_type, acquisition_date,
+     discontinued, audible_credits, price_in_cents) = row
+    acquisition_dict = {
+        "username": username,
+        "acquisition_id": acquisition_id,
+        "vendor_name": vendor_name,
+        "acquisition_type": acquisition_type,
+        "acquisition_date": acquisition_date,
+        "discontinued": discontinued,
+        "audible_credits": audible_credits,
+        "price_in_cents": price_in_cents,
+    }
+    book["acquisition"] = acquisition_dict
+
+    notes_rs = select_notes_for_book(conn, book_id)
+    notes_list = []
+    for row in notes_rs:
+        (username, status, finish_date, rating_stars, rating_description, comments) = row
+        note_dict = {
+            "username": username,
+            "status": status,
+            "finish_date": finish_date,
+            "rating_stars": rating_stars,
+            "rating_description": rating_description,
+            "comments": comments,
+        }
+        notes_list.append(note_dict)
+    book["notes"] = notes_list
+
+    # Create computed attributes.
+    # Create a key for sorting by title.
+    book["title_sort_key"] = get_title_sort_key(book["title"])
+    # Create a key for sorting by length.
+    book["length_sort_key"] = 60 * int(book["hours"]) + int(book["minutes"])
+    # Convert hours and minutes to an hh:mm string.
+    book["length"] = f'{book["hours"]}:{book["minutes"]:02d}'
+    # Get a combined rating for the book from the first notes record.
+    book["rating"] = get_rating(book["notes"][0])
+    # Convert the finish_date to a string.
+    book["finish_date_string"] = book["notes"][0]["finish_date"]
+    if book["finish_date_string"] is None:
+        book["finish_date_string"] = ""
+    return book
+
+
 def get_narrator_data(conn, narrator_id):
     """
     Return None if the narrator doesn't exist.
     Otherwise, return a dict containing the narrator's data.
+
+    The narrator attributes are:
+        id
+        surname
+        forename
+        display_name
     """
     narrator = None
     narrator_rs = select_narrator(conn, narrator_id)
     if narrator_rs is not None:
         # Store the attributes selected from the database.
         id, surname, forename = narrator_rs
-        narrator = {"id": id, "surname": surname, "forename": forename}
+        narrator = {
+            "id": id,
+            "surname": surname,
+            "forename": forename
+        }
 
-        # Compute a narrator_name attribute.
-        narrator_name = None
+        # Compute the display_name attribute.
         if narrator["surname"] is None:
-            narrator_name = narrator["forename"]
+            narrator["display_name"] = narrator["forename"]
         else:
-            narrator_name = narrator["forename"] + " " + narrator["surname"]
-        narrator["narrator_name"] = narrator_name
+            narrator["display_name"] = narrator["forename"] + " " + narrator["surname"]
+    return narrator
 
+
+def get_narrator_data_with_books(conn, narrator_id):
+    """
+    Return None if the narrator doesn't exist.
+    Otherwise, return a dict containing the narrator's data.
+
+    The narrator attributes are:
+        id
+        surname
+        forename
+        display_name
+        books -- a list of book dicts
+    """
+    narrator = get_narrator_data(conn, narrator_id)
+    if narrator is not None:
         # Get the books narrated by the narrator and store the list as the
         # books attribute.
         narrator["books"] = []
-        books_for_narrator_rs = select_books_for_narrator(conn, narrator_id)
-        for book_rs in books_for_narrator_rs:
-            title, book_pub_date, audio_pub_date, hours, minutes, book_id = book_rs
-            book = get_book_data(conn, book_id)
+        book_ids_rs = select_book_ids_for_narrator(conn, narrator_id)
+        for book_id_rs in book_ids_rs:
+            (book_id,) = book_id_rs
+            book = get_book_data2(conn, book_id)
             narrator["books"].append(book)
     return narrator
 
@@ -1210,29 +1432,53 @@ def get_translator_data(conn, translator_id):
     """
     Return None if the translator doesn't exist.
     Otherwise, return a dict containing the translator's data.
+
+    The translator attributes are:
+        id
+        surname
+        forename
+        display_name
     """
     translator = None
     translator_rs = select_translator(conn, translator_id)
     if translator_rs is not None:
         # Store the attributes selected from the database.
         id, surname, forename = translator_rs
-        translator = {"id": id, "surname": surname, "forename": forename}
+        translator = {
+            "id": id,
+            "surname": surname,
+            "forename": forename
+        }
         
-        # Compute a translator_name attribute.
-        translator_name = None
+        # Compute the display_name attribute.
         if translator["surname"] is None:
-            translator_name = translator["forename"]
+            translator["display_name"] = translator["forename"]
         else:
-            translator_name = translator["forename"] + " " + translator["surname"]
-        translator["translator_name"] = translator_name
+            translator["display_name"] = translator["forename"] + " " + translator["surname"]
+    return translator
 
+
+def get_translator_data_with_books(conn, translator_id):
+    """
+    Return None if the translator doesn't exist.
+    Otherwise, return a dict containing the translator's data.
+
+    The translator attributes are:
+        id
+        surname
+        forename
+        display_name
+        books -- a list of book dicts
+    """
+    translator = get_translator_data(conn, translator_id)
+    if translator is not None:
         # Get the books translated by the translator and store the list as the
         # books attribute.
         translator["books"] = []
-        books_for_translator_rs = select_books_for_translator(conn, translator_id)
-        for book_rs in books_for_translator_rs:
-            title, book_pub_date, audio_pub_date, hours, minutes, book_id = book_rs
-            book = get_book_data(conn, book_id)
+        book_ids_rs = select_book_ids_for_translator(conn, translator_id)
+        for book_id_rs in book_ids_rs:
+            (book_id,) = book_id_rs
+            book = get_book_data2(conn, book_id)
             translator["books"].append(book)
     return translator
 
@@ -1276,7 +1522,11 @@ def display_all_books(conn):
 
 
 def display_author(conn, author_id):
-    author = get_author_data(conn, author_id)
+    """
+    Display all information about an author including audiobooks
+    created or co-created by the author.
+    """
+    author = get_author_data_with_books(conn, author_id)
     html = create_start_html(body_class="tables")
     if author is None:
         html += f'    <h1>Author ID {author_id} Not Found</h1>\n'
@@ -1306,7 +1556,7 @@ def display_book(conn, book_id):
 
 
 def display_narrator(conn, narrator_id):
-    narrator = get_narrator_data(conn, narrator_id)
+    narrator = get_narrator_data_with_books(conn, narrator_id)
     html = create_start_html(body_class="tables")
     if narrator is None:
         html += f'    <h1>Narrator ID {narrator_id} Not Found</h1>\n'
@@ -1318,7 +1568,7 @@ def display_narrator(conn, narrator_id):
 
 
 def display_translator(conn, translator_id):
-    translator = get_translator_data(conn, translator_id)
+    translator = get_translator_data_with_books(conn, translator_id)
     html = create_start_html(body_class="tables")
     if translator is None:
         html += f'    <h1>Translator ID {translator_id} Not Found</h1>\n'
