@@ -98,6 +98,19 @@ def select_acquisition_for_book(conn, book_id):
     return result_set
 
 
+def select_all_author_ids(conn):
+    select_author_ids_sql = """
+        SELECT
+            tbl_author.id
+        FROM
+            tbl_author
+    """
+    cur = conn.execute(select_author_ids_sql)
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
 def select_all_books(conn):
     sql_select_all_books = """
         SELECT
@@ -536,24 +549,20 @@ def create_about_html():
     return html
 
 
-def create_all_authors_table_html(conn):
+def create_all_authors_table_html(authors):
     """
-    Deprecated
+    authors is a list of author data records sorted by the authors' last names
+    using the name_sort_key attribute as the sort key.
+
+    The author attribues are:
+        id
+        surname
+        forename
+        display_name
+        reverse_name
+        name_sort_key
+        books -- a list of book dicts
     """
-    index_path = get_index_path()
-
-    # Get authors' forenames and surnames and combine them into a
-    # case-dependent sort key and a full name.
-    authors_result_set = select_authors(conn)
-    name_list = []
-    for row in authors_result_set:
-        (author_id, surname, forename) = row
-        author_name = get_author_name(surname, forename)
-        author_name_sort_key = get_author_name_sort_key(surname, forename)
-        name_list.append([author_id, author_name, author_name_sort_key])
-    # Sort the list of lists.
-    sorted_names_list = sorted(name_list, key=lambda attrs: attrs[2])
-
     html = ''
     html += '      <h1>Authors</h1>\n'
     html += '      <table id="authors">\n'
@@ -570,53 +579,25 @@ def create_all_authors_table_html(conn):
     html += '          </tr>\n'
     html += '        </thead>\n'
     html += '        <tbody>\n'
-    for row in sorted_names_list:
-        (author_id, author_name, sort_key) = row
-        books_rs = select_books_for_author(conn, author_id)
+
+    index_path = get_index_path()
+    for author in authors:
+        sorted_books = sorted(author["books"], key=lambda book: book["title_sort_key"])
         first_tr = True
-
-        # Create a sorted list of book attributes.
-        books_list = []
-        for book_row in books_rs:
-            (title, pub_date, audio_pub_date, hours, minutes, book_id) = book_row
-            title_sort_key = get_title_sort_key(title)
-            length = get_audiobook_length(hours, minutes)
-            books_list.append((title, title_sort_key, pub_date, audio_pub_date, length, book_id))
-        sorted_books_list = sorted(books_list, key=lambda tup: tup[1])
-
-        for book in sorted_books_list:
-            (title, title_sort_key, pub_date, audio_pub_date, length, book_id) = book
-
-            # Select the acquisition date.
-            acquisition_date = select_acquisition_date(conn, book_id)
-
-            # Select the status, finished date (may be null), rating stars (may
-            # be null), and rating description (is null if rating stars is null).
-            # Create strings for the HTML output.
-            rs = select_notes_for_book(conn, book_id)
-            status = rs[0][1]
-            finish_date = rs[0][2]
-            if finish_date is None:
-                finish_date = ""
-            
-            note = {}
-            note["rating_stars"] = rs[0][3]
-            note["rating_description"] = rs[0][4]
-            rating = get_rating(note)
-
+        for book in sorted_books:
             html += '          <tr>\n'
             if first_tr:
-                html += f"""            <td class="nowrap"><a href="{index_path}?author_id={author_id}">{author_name}</a></td>\n"""
+                html += f"""            <td class="nowrap"><a href="{index_path}?author_id={author["id"]}">{author["reverse_name"]}</a></td>\n"""
                 first_tr = False
             else:
                 html += '          <td></td>\n'
-            html += f"""            <td><a href="{index_path}?book_id={book_id}">{title}</a></td>\n"""
-            html += f'            <td class="nowrap">{rating}</td>\n'
-            html += create_authors_td_html(conn, book_id)
-            html += f'            <td class="right">{length}</td>\n'
-            html += f'            <td class="nowrap">{acquisition_date}</td>\n'
-            html += f'            <td>{status}</td>\n'
-            html += f'            <td class="nowrap">{finish_date}</td>\n'
+            html += f"""            <td><a href="{index_path}?book_id={book["id"]}">{book["title"]}</a></td>\n"""
+            html += f'            <td class="nowrap">{book["rating"]}</td>\n'
+            html += create_authors_td_html2(book["authors"])
+            html += f'            <td class="right">{book["length"]}</td>\n'
+            html += f'            <td class="nowrap">{book["acquisition_date"]}</td>\n'
+            html += f'            <td>{book["status_string"]}</td>\n'
+            html += f'            <td class="nowrap">{book["finish_date_string"]}</td>\n'
             html += '          </tr>\n'
     html += '        </tbody>\n'
     html += '      </table>\n'
@@ -1035,7 +1016,7 @@ def create_sortable_books_table_html2(books, filterable=False):
     for book in sorted_books:
         # Create table rows for all books, reporting only the first finished date.
         html += f"""          <tr class="{book['notes'][0]['status'].lower()}">\n"""
-        html += f"""            <td data-sortkey="{book['title_sort_key']}"><a href="{index_path}?book_id={book['book_id']}">{book['title']}</a></td>\n"""
+        html += f"""            <td data-sortkey="{book['title_sort_key']}"><a href="{index_path}?book_id={book['id']}">{book['title']}</a></td>\n"""
         html += create_authors_td_html2(book["authors"])
         html += f"""            <td class="nowrap">{book['rating']}</td>\n"""
         html += f"""            <td data-sortkey="{book['length_sort_key']}" class="right">{book["length"]}</td>\n"""
@@ -1105,6 +1086,21 @@ def create_translator_html(translator):
 
 
 ########## Get data code.
+
+
+def get_all_authors_data(conn):
+    """
+    Return a list of author records, where the list is sorted by the
+    author["name_sort_key"] attributes.
+    """
+    authors = []
+    author_ids_rs = select_all_author_ids(conn)
+    for author_id_rs in author_ids_rs:
+        (author_id,) = author_id_rs
+        author = get_author_data_with_books(conn, author_id)
+        authors.append(author)
+    sorted_authors = sorted(authors, key=lambda author: author["name_sort_key"])
+    return sorted_authors
 
 
 def get_author_data(conn, author_id):
@@ -1177,6 +1173,16 @@ def get_author_data_with_books(conn, author_id):
             book = get_book_data2(conn, book_id)
             author["books"].append(book)
     return author
+
+
+def get_authors_for_book(conn, book_id):
+    author_ids_rs = select_author_ids_for_book(conn, book_id)
+    authors = []
+    for author_id_rs in author_ids_rs:
+        (author_id,) = author_id_rs
+        author = get_author_data(conn, author_id)
+        authors.append(author)
+    return authors
 
 
 def get_book_data(conn, book_id):
@@ -1292,40 +1298,20 @@ def get_book_data2(conn, book_id):
     if book_rs is None:
         return None
 
-    (db_book_id, title, book_pub_date, audio_pub_date, hours, minutes,) = book_rs
+    (id, title, book_pub_date, audio_pub_date, hours, minutes,) = book_rs
     book = {
-        "book_id": db_book_id,
+        "id": id,
         "title": title,
         "book_pub_date": book_pub_date,
         "audio_pub_date": audio_pub_date,
         "hours": hours,
         "minutes": minutes,
     }
+    book["authors"] = get_authors_for_book(conn, book_id)
+    book["translators"] = get_translators_for_book(conn, book_id)
+    book["narrators"] = get_narrators_for_book(conn, book_id)
 
-    author_ids_rs = select_author_ids_for_book(conn, book_id)
-    authors = []
-    for author_id_rs in author_ids_rs:
-        (author_id,) = author_id_rs
-        author = get_author_data(conn, author_id)
-        authors.append(author)
-    book["authors"] = authors
-
-    translator_ids_rs = select_translator_ids_for_book(conn, book_id)
-    translators = []
-    for translator_id_rs in translator_ids_rs:
-        (translator_id,) = translator_id_rs
-        translator = get_translator_data(conn, translator_id)
-        translators.append(translator)
-    book["translators"] = translators
-
-    narrator_ids_rs = select_narrator_ids_for_book(conn, book_id)
-    narrators = []
-    for narrator_id_rs in narrator_ids_rs:
-        (narrator_id,) = narrator_id_rs
-        narrator = get_narrator_data(conn, narrator_id)
-        narrators.append(narrator)
-    book["narrators"] = narrators
-
+    # Acquisition
     acquisition_rs = select_acquisition_for_book(conn, book_id)
     row = acquisition_rs[0]
     (username, acquisition_id, vendor_name, acquisition_type, acquisition_date,
@@ -1370,6 +1356,12 @@ def get_book_data2(conn, book_id):
     book["finish_date_string"] = book["notes"][0]["finish_date"]
     if book["finish_date_string"] is None:
         book["finish_date_string"] = ""
+    # Convert the status to a string.
+    book["status_string"] = book["notes"][0]["status"]
+    if book["status_string"] is None:
+        book["status_string"] = ""
+    # Compute the acquisition_date attribute.
+    book["acquisition_date"] = book["acquisition"]["acquisition_date"]
     return book
 
 
@@ -1428,6 +1420,16 @@ def get_narrator_data_with_books(conn, narrator_id):
     return narrator
 
 
+def get_narrators_for_book(conn, book_id):
+    narrator_ids_rs = select_narrator_ids_for_book(conn, book_id)
+    narrators = []
+    for narrator_id_rs in narrator_ids_rs:
+        (narrator_id,) = narrator_id_rs
+        narrator = get_narrator_data(conn, narrator_id)
+        narrators.append(narrator)
+    return narrators
+
+
 def get_translator_data(conn, translator_id):
     """
     Return None if the translator doesn't exist.
@@ -1483,6 +1485,16 @@ def get_translator_data_with_books(conn, translator_id):
     return translator
 
 
+def get_translators_for_book(conn, book_id):
+    translator_ids_rs = select_translator_ids_for_book(conn, book_id)
+    translators = []
+    for translator_id_rs in translator_ids_rs:
+        (translator_id,) = translator_id_rs
+        translator = get_translator_data(conn, translator_id)
+        translators.append(translator)
+    return translators
+
+
 ########## Display code.
 
 def display_404_not_found():
@@ -1502,8 +1514,9 @@ def display_about():
 
 
 def display_all_authors(conn):
+    authors = get_all_authors_data(conn)
     html = create_start_html(body_class="tables")
-    html += create_all_authors_table_html(conn)
+    html += create_all_authors_table_html(authors)
     html += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
     print(html)
