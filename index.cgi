@@ -295,6 +295,9 @@ def select_narrators_for_book(conn, book_id):
 
 
 def select_notes_for_book(conn, book_id):
+    """
+    Select notes in chronological order using tbl_note.id.
+    """
     sql_select_notes_for_book = """
         SELECT
             tbl_user.username,
@@ -314,12 +317,89 @@ def select_notes_for_book(conn, book_id):
         WHERE
             tbl_note.book_id = ?
         ORDER BY
-            tbl_note.finish_date
+            tbl_note.id
     """
     cur = conn.execute(sql_select_notes_for_book, (book_id,))
     result_set = cur.fetchall()
     cur.close()
     return result_set
+
+
+def select_total_acquired(conn):
+    sql_select_total_acquired = """
+        SELECT
+            COUNT(tbl_acquisition.acquisition_date)
+        FROM
+            tbl_acquisition
+    """
+    cur = conn.execute(sql_select_total_acquired)
+    result_set = cur.fetchone()
+    cur.close()
+    return result_set[0]
+
+
+def select_total_distinct_finished(conn):
+    sql_select_total_distinct_finished = """
+        SELECT
+            COUNT(DISTINCT tbl_book.id) as books_finished
+        FROM
+            tbl_book
+            INNER JOIN tbl_note
+                ON tbl_book.id = tbl_note.book_id
+        WHERE
+            tbl_note.finish_date IS NOT NULL
+    """
+    cur = conn.execute(sql_select_total_distinct_finished)
+    result_set = cur.fetchone()
+    cur.close()
+    return result_set[0]
+
+
+def select_total_finished(conn):
+    sql_select_total_finished = """
+        SELECT
+            COUNT(tbl_note.finish_date)
+        FROM
+            tbl_note
+        WHERE
+            tbl_note.finish_date IS NOT NULL
+    """
+    cur = conn.execute(sql_select_total_finished)
+    result_set = cur.fetchone()
+    cur.close()
+    return result_set[0]
+
+
+def select_total_unfinished(conn):
+    sql_select_total_unfinished = """
+        SELECT
+            COUNT(tbl_note.status_id)
+        FROM
+            tbl_note
+            INNER JOIN tbl_status
+                ON tbl_note.status_id = tbl_status.id
+            INNER JOIN tbl_book
+                ON tbl_note.book_id = tbl_book.id
+        WHERE
+            tbl_status.name = 'New'
+            OR tbl_status.name = 'Started'
+            AND tbl_book.id NOT IN (
+                SELECT DISTINCT
+                    tbl_book.id
+                FROM
+                    tbl_book
+                    INNER JOIN tbl_note
+                        ON tbl_book.id = tbl_note.book_id
+                    INNER JOIN tbl_status
+                        ON tbl_note.status_id = tbl_status.id
+                WHERE
+                    tbl_status.name = 'Finished'
+            )
+    """
+    cur = conn.execute(sql_select_total_unfinished)
+    result_set = cur.fetchone()
+    cur.close()
+    return result_set[0]
 
 
 def select_translator(conn, translator_id):
@@ -370,6 +450,43 @@ def select_translators_for_book(conn, book_id):
             tbl_book_translator.book_id = ?
     """
     cur = conn.execute(sql_select_translators_for_book, (book_id,))
+    result_set = cur.fetchall()
+    cur.close()
+    return result_set
+
+
+def select_year_counts(conn):
+    sql_select_year_counts = """
+        SELECT
+            x.year,
+            y.books_acquired,
+            x.books_finished
+        FROM
+            (
+                SELECT
+                    STRFTIME('%Y', tbl_note.finish_date) AS year,
+                    COUNT(STRFTIME('%Y', tbl_note.finish_date)) as books_finished
+                FROM
+                    tbl_note
+                WHERE
+                    tbl_note.finish_date IS NOT NULL
+                GROUP BY
+                    STRFTIME('%Y', tbl_note.finish_date)
+
+            ) AS x
+            INNER JOIN
+            (
+                SELECT
+                    STRFTIME('%Y', tbl_acquisition.acquisition_date) AS year,
+                    COUNT(STRFTIME('%Y', tbl_acquisition.acquisition_date)) as books_acquired
+                FROM
+                    tbl_acquisition
+                GROUP BY
+                    STRFTIME('%Y', tbl_acquisition.acquisition_date)
+            ) AS y
+            ON x.year = y.year
+    """
+    cur = conn.execute(sql_select_year_counts)
     result_set = cur.fetchall()
     cur.close()
     return result_set
@@ -501,6 +618,53 @@ def create_all_authors_table_html(authors):
             html += f'            <td>{book["status_string"]}</td>\n'
             html += f'            <td class="nowrap">{book["finish_date_string"]}</td>\n'
             html += '          </tr>\n'
+    html += '        </tbody>\n'
+    html += '      </table>\n'
+    return html
+
+
+def create_summaries_html(summaries):
+    html = '      <h1>Summaries</h1>\n'
+    html += '      <h2>Annual Totals</h2>\n'
+    html += '      <table>\n'
+    html += '        <caption>Number of audiobooks acquired and finished each year</caption>\n'
+    html += '        <thead>\n'
+    html += '          <tr>\n'
+    html += '            <th>Year</th>\n'
+    html += '            <th>Acquired</th>\n'
+    html += '            <th>Finished</th>\n'
+    html += '          </tr>\n'
+    html += '        </thead>\n'
+    html += '        <tbody>\n'
+    for row in summaries["year_counts"]:
+        html += '        <tr>\n'
+        html += f'          <td class="right">{row["year"]}</td>\n'
+        html += f'          <td class="right">{row["acquired"]}</td>\n'
+        html += f'          <td class="right">{row["finished"]}</td>\n'
+        html += f'        </tr>\n'
+    html += '        </tbody>\n'
+    html += '      </table>\n'
+
+    html += '      <h2>Grand Totals</h2>\n'
+    html += '      <table>\n'
+    html += '        <caption>All Audiobooks Finished includes multiple listens of audiobooks</caption>'
+    html += '        <tbody>\n'
+    html += '          <tr>\n'
+    html += '            <th>Audiobooks Acquired</th>\n'
+    html += f'            <td class="right">{summaries["totals"]["acquired"]}</td>\n'
+    html += '          </tr>\n'
+    html += '          <tr>\n'
+    html += '            <th>Distinct Audiobooks Finished</th>\n'
+    html += f'            <td class="right">{summaries["totals"]["distinct_finished"]}</td>\n'
+    html += '          </tr>\n'
+    html += '          <tr>\n'
+    html += '            <th>Audiobooks Not Finished</th>\n'
+    html += f'            <td class="right">{summaries["totals"]["not_finished"]}</td>\n'
+    html += '          </tr>\n'
+    html += '          <tr>\n'
+    html += '            <th>All Audiobooks Finished</th>\n'
+    html += f'            <td class="right">{summaries["totals"]["all_finished"]}</td>\n'
+    html += '          </tr>\n'
     html += '        </tbody>\n'
     html += '      </table>\n'
     return html
@@ -835,6 +999,7 @@ def create_start_html(body_class="tables"):
                   <li class="logo" style="min-width: 13rem;"><a href="{index_path}">🎧<em>Audio</em>books📚</a></li>
                   <li><a href="{index_path}">Audiobooks</a></li>
                   <li><a href="{index_path}?authors">Authors</a></li>
+                  <li><a href="{index_path}?summaries">Summaries</a></li>
                   <li><a href="{index_path}?about">About</a></li>
                   <li class="blog"><a href="https://conradhalling.com/blog/">Blog</a></li>
                   <!--
@@ -1116,6 +1281,36 @@ def get_narrators_for_book(conn, book_id):
     return narrators
 
 
+def get_summaries_data(conn):
+    summaries = {}
+
+    # year_counts is a list of dicts with keys "year", "acquired", and
+    # finished" and values the year, the number of books acquired that
+    # year, and the number of books finished that year.
+    year_counts_rs = select_year_counts(conn)
+    year_counts = []
+    for row in year_counts_rs:
+        (year, acquired, finished) = row
+        year_dict = {
+            "year": year,
+            "acquired": acquired,
+            "finished": finished,
+        }
+        year_counts.append(year_dict)
+    summaries["year_counts"] = year_counts
+
+    # totals is a dict containing acquired, distinct_finished, not_finished,
+    # and all_finished totals.
+    totals = {
+        "acquired": select_total_acquired(conn),
+        "distinct_finished": select_total_distinct_finished(conn),
+        "not_finished": select_total_unfinished(conn),
+        "all_finished": select_total_finished(conn),
+    }
+    summaries["totals"] = totals
+    return summaries
+
+
 def get_translator_data(conn, translator_id):
     """
     Return None if the translator doesn't exist.
@@ -1263,6 +1458,15 @@ def display_narrator(conn, narrator_id):
     print(html)
 
 
+def display_summaries(conn):
+    summaries = get_summaries_data(conn)
+    html = create_start_html(body_class="tables")
+    html += create_summaries_html(summaries)
+    html += create_end_html()
+    print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
+    print(html)
+
+
 def display_translator(conn, translator_id):
     translator = get_translator_data_with_books(conn, translator_id)
     html = create_start_html(body_class="tables")
@@ -1299,6 +1503,8 @@ def main():
             display_book(conn, fs["book_id"].value)
         elif "narrator_id" in fs:
             display_narrator(conn, fs["narrator_id"].value)
+        elif "summaries" in fs:
+            display_summaries(conn)
         elif "translator_id" in fs:
             display_translator(conn, fs["translator_id"].value)
         else:
