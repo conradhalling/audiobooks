@@ -17,7 +17,6 @@
   --color-100: hsl(210 40 100);
 
   font-family: Georgia, serif;
-  line-height: 2rem;
   background-color: var(--color-095);
   color: var(--color-000);
 }
@@ -29,14 +28,152 @@
 */
 body.tables,
 body.about {
-  margin: 0rem 2rem 2rem 2rem;
+  margin: 0rem 1rem 2rem 1rem;
 }
 
 /*
   The header contains a horizontal fixed menu bar.
 */
 
-header {
+/* Menu configuration */
+nav>ul {
+  margin-top: 0;
+  list-style: none;
+}
+
+.header {
+  background-color: var(--color-095);
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 3rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  border-bottom: 1px solid var(--color-090);
+  font-family: Verdana, sans-serif;
+}
+
+.logo {
+  display: inline-block;
+  font-size: 1.5rem;
+  padding-top: 0.25rem;
+  text-decoration: none;
+  color: var(--color-025);
+}
+
+.nav {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  background-color: var(--color-095);
+  overflow: hidden;
+  padding-left: 1rem;
+  max-height: 0;
+  transition: max-height .5s ease-out;
+}
+
+.header .nav ul li :hover {
+  background-color: var(--color-085);
+}
+
+.menu a {
+  display: block;
+  padding: 0.7rem 0.5rem;
+  color: var(--color-000);
+  text-decoration: none;
+}
+
+.hamb {
+  cursor: pointer;
+  float: right;
+  padding: 1.2rem;
+
+  &:hover {
+    background-color: var(--color-085);
+  }
+}
+
+.hamb-line {
+  background-color: var(--color-000);
+  display: block;
+  height: 2px;
+  position: relative;
+  width: 24px;
+}
+
+.hamb-line::before,
+.hamb-line::after {
+  background-color: var(--color-000);
+  content: '';
+  display: block;
+  height: 100%;
+  position: absolute;
+  transition: all .2s ease-out;
+  width: 100%;
+}
+
+.hamb-line::before {
+  top: 5px;
+}
+
+.hamb-line::after {
+  top: -5px;
+}
+
+.side-menu {
+  display: none;
+}
+
+/* Hide checkbox */
+/* Toggle menu icon */
+.side-menu:checked~nav {
+  max-height: 100%;
+}
+
+.side-menu:checked~.hamb .hamb-line {
+  background: transparent;
+}
+
+.side-menu:checked~.hamb .hamb-line::before {
+  transform: rotate(-45deg);
+  top: 0;
+}
+
+.side-menu:checked~.hamb .hamb-line::after {
+  transform: rotate(45deg);
+  top: 0;
+}
+
+body:has(.side-menu:checked) {
+  overflow: hidden;
+}
+
+/* Responsiveness */
+@media (min-width: 768px) {
+  .nav {
+    max-height: none;
+    top: 0;
+    position: relative;
+    float: right;
+    width: fit-content;
+    background-color: transparent;
+  }
+
+  .menu li {
+    float: left;
+  }
+
+  .menu a:hover {
+    background-color: transparent;
+    color: var(--gray);
+  }
+
+  .hamb {
+    display: none;
+  }
+}
+
+/* header {
   position: fixed;
   top: 0;
   left: 0;
@@ -89,10 +226,11 @@ header {
       }
     }
   }
-}
+} */
 
 main {
-  margin-top: 50px;
+  /* margin-top: 50px; */
+  line-height: 2rem;
   margin-left: auto;
   margin-right: auto;
 }
@@ -268,9 +406,44 @@ td a:visited:hover {
     color: var(--color-090);
   }
 
-  header {
+  .header {
     background-color: var(--color-010);
     border-bottom: 1px solid var(--color-015);
+  }
+
+  .nav {
+    background-color: var(--color-010);
+  }
+
+  .header .nav ul li :hover {
+    background-color: var(--color-025);
+  }
+
+  .menu a {
+    color: var(--color-100);
+  }
+
+  .hamb {
+    &:hover {
+      background-color: var(--color-025);
+    }
+  }
+
+  .hamb-line {
+    background-color: var(--color-100);
+  }
+
+  .hamb-line::before,
+  .hamb-line::after {
+    background-color: var(--color-100);
+  }
+
+  .logo {
+    color: var(--color-075);
+  }
+
+  /* 
+  header {
     nav {
       background-color: var(--color-010);
       ul {
@@ -278,7 +451,8 @@ td a:visited:hover {
           &:hover {
             background-color: var(--color-025);
           }
-          a, a:hover {
+          a,
+          a:hover {
             color: var(--color-090);
           }
         }
@@ -291,7 +465,7 @@ td a:visited:hover {
         }
       }
     }
-  }
+  } */
 
   table {
     border: 1px solid var(--color-015);

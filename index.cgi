@@ -993,10 +993,14 @@ def create_start_html(body_class="tables"):
             <script src="{js_dir_path}main.js" type="module"></script>
           </head>
           <body class="{body_class}">
-            <header>
-              <nav>
-                <ul>
-                  <li class="logo" style="min-width: 13rem;"><a href="{index_path}">🎧<em>Audio</em>books📚</a></li>
+            <header class="header">
+              <a href="{index_path}" class="logo">🎧<em>Audio</em>books📚</a>
+              <input class="side-menu" type="checkbox" id="side-menu">
+              <label class="hamb" for="side-menu">
+                <span class="hamb-line"></span>
+              </label>
+              <nav class="nav">
+                <ul class="menu">
                   <li><a href="{index_path}">Audiobooks</a></li>
                   <li><a href="{index_path}?authors">Authors</a></li>
                   <li><a href="{index_path}?summaries">Summaries</a></li>
@@ -1004,7 +1008,7 @@ def create_start_html(body_class="tables"):
                   <li class="blog"><a href="https://conradhalling.com/blog/">Blog</a></li>
                   <!--
                   <li><a href="new.cgi">New</a></li>
-                  <li><a href="login.cgi">Log In</a></li>
+                  <li><a href="{index_path}?login">Log In</a></li>
                   -->
                 </ul>
               </nav>
