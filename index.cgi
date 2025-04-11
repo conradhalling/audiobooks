@@ -7,6 +7,7 @@ This script does not use the db package (yet).
 import cgi
 import cgitb
 cgitb.enable()
+import html
 import os
 import sqlite3
 import sys
@@ -1418,18 +1419,23 @@ def display_all_books(conn):
 
 def display_author(conn, author_id):
     """
-    Display all information about an author including audiobooks
-    created or co-created by the author.
+    Display all information about an author including audiobooks created or
+    co-created by the author.
+
+    author_id must be an int > 0.
     """
-    author = get_author_data_with_books(conn, author_id)
-    html = create_start_html(body_class="tables")
-    if author is None:
-        html += f'    <h1>Author ID {author_id} Not Found</h1>\n'
+    html_str = create_start_html(body_class="tables")
+    if str.isdigit(author_id) and str.isascii(author_id) and int(author_id) > 0:
+        author = get_author_data_with_books(conn, author_id)
+        if author is None:
+            html_str += f'    <h1>Author ID "{html.escape(author_id)}" Not Found</h1>\n'
+        else:
+            html_str += create_author_html(author)
     else:
-        html += create_author_html(author)
-    html += create_end_html()
+        html_str += f'    <h1>Invalid author ID "{html.escape(author_id)}"</h1>\n'
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_book(conn, book_id):
@@ -1437,29 +1443,41 @@ def display_book(conn, book_id):
     Given a book ID, query the database for the book's data, create the
     HTML string, and print the Content-Type header and the HTML.
 
-    Report if the book ID is not in the database.
+    book_id must be an in int > 0.
     """
-    book = get_book_data(conn, book_id)
-    html = create_start_html(body_class="tables")
-    if book is None:
-        html += f'    <h1>Book ID {book_id} Not Found</h1>\n'
+    html_str = create_start_html(body_class="tables")
+    if str.isdigit(book_id) and str.isascii(book_id) and int(book_id) > 0:
+        book = get_book_data(conn, book_id)
+        if book is None:
+            html_str += f'    <h1>Book ID "{html.escape(book_id)}" Not Found</h1>\n'
+        else:
+            html_str += create_book_html(book)
     else:
-        html += create_book_html(book)
-    html += create_end_html()
+        html_str += f'    <h1>Invalid book ID "{html.escape(book_id)}"</h1>\n'
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_narrator(conn, narrator_id):
-    narrator = get_narrator_data_with_books(conn, narrator_id)
-    html = create_start_html(body_class="tables")
-    if narrator is None:
-        html += f'    <h1>Narrator ID {narrator_id} Not Found</h1>\n'
+    """
+    Given a narrator ID, query the database for the narrator's data, create the
+    HTML string, and print the Content-Type header and the HTML.
+
+    narrator_id must be an int > 0.
+    """
+    html_str = create_start_html(body_class="tables")
+    if str.isdigit(narrator_id) and str.isascii(narrator_id) and int(narrator_id) > 0:
+        narrator = get_narrator_data_with_books(conn, narrator_id)
+        if narrator is None:
+            html_str += f'    <h1>Narrator ID {html.escape(narrator_id)} Not Found</h1>\n'
+        else:
+            html_str += create_narrator_html(narrator)
     else:
-        html += create_narrator_html(narrator)
-    html += create_end_html()
+        html_str += f'    <h1>Invalid narrator ID "{html.escape(narrator_id)}"</h1>\n'
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_summaries(conn):
@@ -1472,15 +1490,24 @@ def display_summaries(conn):
 
 
 def display_translator(conn, translator_id):
-    translator = get_translator_data_with_books(conn, translator_id)
-    html = create_start_html(body_class="tables")
-    if translator is None:
-        html += f'    <h1>Translator ID {translator_id} Not Found</h1>\n'
+    """
+    Given a translator ID, query the database for the translator's data, create
+    the HTML string, and print the Content-Type header and the HTML.
+
+    translator_id must be an int > 0.
+    """
+    html_str = create_start_html(body_class="tables")
+    if str.isdigit(translator_id) and str.isascii(translator_id) and int(translator_id) > 0:
+        translator = get_translator_data_with_books(conn, translator_id)
+        if translator is None:
+            html_str += f'    <h1>Translator ID "{html.escape(translator_id)}" Not Found</h1>\n'
+        else:
+            html_str += create_translator_html(translator)
     else:
-        html += create_translator_html(translator)
-    html += create_end_html()
+        html_str += f'    <h1>Invalid translator ID "{html.escape(translator_id)}"</h1>\n'
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def main():
