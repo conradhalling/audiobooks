@@ -530,18 +530,18 @@ def get_title_sort_key(title):
 
 
 def create_404_html():
-    html = """\
+    html_str = """\
     <h1>404: Page Not Found</h1>
     <p>
       Sorry, we've misplaced that URL or it's pointing to something that doesn't
       exist.
     </p>
     """
-    return html
+    return html_str
 
 
 def create_about_html():
-    html = """\
+    html_str = """\
     <h1>About This Website</h1>
     <p>
       I have been recording the audiobooks I’ve listened to in an Excel
@@ -558,7 +558,7 @@ def create_about_html():
     </p>
     <p>
       Anyone is welcome to view the data, but at this time I am the only person
-      who can log in to add new audiobooks or update existing audiobooks.
+      who can add new audiobooks or update existing audiobooks.
     </p>
     <p>
       The source code for this application is available at my
@@ -566,7 +566,7 @@ def create_about_html():
       repository</a>.
     </p>
     """
-    return html
+    return html_str
 
 
 def create_all_authors_table_html(authors):
@@ -583,110 +583,110 @@ def create_all_authors_table_html(authors):
         name_sort_key
         books -- a list of book dicts
     """
-    html = ''
-    html += '      <h1>Authors</h1>\n'
-    html += '      <table id="authors">\n'
-    html += '        <thead>\n'
-    html += '          <tr>\n'
-    html += '            <th>Author</th>\n'
-    html += '            <th>Title</th>\n'
-    html += '            <th>Rating</th>\n'
-    html += '            <th class="nowrap">All Authors</th>\n'
-    html += '            <th>Length</th>\n'
-    html += '            <th>Acquired</th>\n'
-    html += '            <th>Status</th>\n'
-    html += '            <th>Finished</th>\n'
-    html += '          </tr>\n'
-    html += '        </thead>\n'
-    html += '        <tbody>\n'
+    html_str = ''
+    html_str += '      <h1>Authors</h1>\n'
+    html_str += '      <table id="authors">\n'
+    html_str += '        <thead>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Author</th>\n'
+    html_str += '            <th>Title</th>\n'
+    html_str += '            <th>Rating</th>\n'
+    html_str += '            <th class="nowrap">All Authors</th>\n'
+    html_str += '            <th>Length</th>\n'
+    html_str += '            <th>Acquired</th>\n'
+    html_str += '            <th>Status</th>\n'
+    html_str += '            <th>Finished</th>\n'
+    html_str += '          </tr>\n'
+    html_str += '        </thead>\n'
+    html_str += '        <tbody>\n'
 
     index_path = get_index_path()
     for author in authors:
         sorted_books = sorted(author["books"], key=lambda book: book["title_sort_key"])
         first_tr = True
         for book in sorted_books:
-            html += '          <tr>\n'
+            html_str += '          <tr>\n'
             if first_tr:
-                html += f"""            <td class="nowrap"><a href="{index_path}?author_id={author["id"]}">{author["reverse_name"]}</a></td>\n"""
+                html_str += f"""            <td class="nowrap"><a href="{index_path}?author_id={html.escape(str(author["id"]))}">{html.escape(author["reverse_name"])}</a></td>\n"""
                 first_tr = False
             else:
-                html += '          <td></td>\n'
-            html += f"""            <td><a href="{index_path}?book_id={book["id"]}">{book["title"]}</a></td>\n"""
-            html += f'            <td class="nowrap">{book["rating"]}</td>\n'
-            html += create_authors_td_html(book["authors"])
-            html += f'            <td class="right">{book["length"]}</td>\n'
-            html += f'            <td class="nowrap">{book["acquisition_date"]}</td>\n'
-            html += f'            <td>{book["status_string"]}</td>\n'
-            html += f'            <td class="nowrap">{book["finish_date_string"]}</td>\n'
-            html += '          </tr>\n'
-    html += '        </tbody>\n'
-    html += '      </table>\n'
-    return html
+                html_str += '          <td></td>\n'
+            html_str += f"""            <td><a href="{index_path}?book_id={html.escape(str(book["id"]))}">{html.escape(book["title"])}</a></td>\n"""
+            html_str += f'            <td class="nowrap">{html.escape(book["rating"])}</td>\n'
+            html_str += create_authors_td_html(book["authors"])
+            html_str += f'            <td class="right">{html.escape(book["length"])}</td>\n'
+            html_str += f'            <td class="nowrap">{html.escape(book["acquisition_date"])}</td>\n'
+            html_str += f'            <td>{html.escape(book["status_string"])}</td>\n'
+            html_str += f'            <td class="nowrap">{html.escape(book["finish_date_string"])}</td>\n'
+            html_str += '          </tr>\n'
+    html_str += '        </tbody>\n'
+    html_str += '      </table>\n'
+    return html_str
 
 
 def create_summaries_html(summaries):
-    html = '      <h1>Summaries</h1>\n'
-    html += '      <h2>Annual Totals</h2>\n'
-    html += '      <table>\n'
-    html += '        <caption>Number of audiobooks acquired and finished each year</caption>\n'
-    html += '        <thead>\n'
-    html += '          <tr>\n'
-    html += '            <th>Year</th>\n'
-    html += '            <th>Acquired</th>\n'
-    html += '            <th>Finished</th>\n'
-    html += '          </tr>\n'
-    html += '        </thead>\n'
-    html += '        <tbody>\n'
+    html_str = '      <h1>Summaries</h1>\n'
+    html_str += '      <h2>Annual Totals</h2>\n'
+    html_str += '      <table>\n'
+    html_str += '        <caption>Number of audiobooks acquired and finished each year</caption>\n'
+    html_str += '        <thead>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Year</th>\n'
+    html_str += '            <th>Acquired</th>\n'
+    html_str += '            <th>Finished</th>\n'
+    html_str += '          </tr>\n'
+    html_str += '        </thead>\n'
+    html_str += '        <tbody>\n'
     for row in summaries["year_counts"]:
-        html += '        <tr>\n'
-        html += f'          <td class="right">{row["year"]}</td>\n'
-        html += f'          <td class="right">{row["acquired"]}</td>\n'
-        html += f'          <td class="right">{row["finished"]}</td>\n'
-        html += f'        </tr>\n'
-    html += '        </tbody>\n'
-    html += '      </table>\n'
+        html_str += '        <tr>\n'
+        html_str += f'          <td class="right">{html.escape(str(row["year"]))}</td>\n'
+        html_str += f'          <td class="right">{html.escape(str(row["acquired"]))}</td>\n'
+        html_str += f'          <td class="right">{html.escape(str(row["finished"]))}</td>\n'
+        html_str += f'        </tr>\n'
+    html_str += '        </tbody>\n'
+    html_str += '      </table>\n'
 
-    html += '      <h2>Grand Totals</h2>\n'
-    html += '      <table>\n'
-    html += '        <caption>All Audiobooks Finished includes multiple listens of audiobooks</caption>'
-    html += '        <tbody>\n'
-    html += '          <tr>\n'
-    html += '            <th>Audiobooks Acquired</th>\n'
-    html += f'            <td class="right">{summaries["totals"]["acquired"]}</td>\n'
-    html += '          </tr>\n'
-    html += '          <tr>\n'
-    html += '            <th>Distinct Audiobooks Finished</th>\n'
-    html += f'            <td class="right">{summaries["totals"]["distinct_finished"]}</td>\n'
-    html += '          </tr>\n'
-    html += '          <tr>\n'
-    html += '            <th>Audiobooks Not Finished</th>\n'
-    html += f'            <td class="right">{summaries["totals"]["not_finished"]}</td>\n'
-    html += '          </tr>\n'
-    html += '          <tr>\n'
-    html += '            <th>All Audiobooks Finished</th>\n'
-    html += f'            <td class="right">{summaries["totals"]["all_finished"]}</td>\n'
-    html += '          </tr>\n'
-    html += '        </tbody>\n'
-    html += '      </table>\n'
-    return html
+    html_str += '      <h2>Grand Totals</h2>\n'
+    html_str += '      <table>\n'
+    html_str += '        <caption>All Audiobooks Finished includes multiple listens of audiobooks</caption>'
+    html_str += '        <tbody>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Audiobooks Acquired</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["acquired"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Distinct Audiobooks Finished</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["distinct_finished"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Audiobooks Not Finished</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["not_finished"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>All Audiobooks Finished</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["all_finished"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '        </tbody>\n'
+    html_str += '      </table>\n'
+    return html_str
 
 
 def create_all_books_table_html(books):
     """
     Create the HTML for all books.
     """
-    html =  '      <h1>Audiobooks</h1>\n'
-    html += '      <div class="filters">\n'
-    html += '        <strong>Filter by Status:</strong>\n'
-    html += '        <input type="checkbox" id="new" title="Click this checkbox to toggle the visibility of new audiobooks." checked>\n'
-    html += '        <label for="new" title="Click this checkbox to toggle the visibility of new audiobooks.">New</label>\n'
-    html += '        <input type="checkbox" id="started" title="Click this checkbox to toggle the visibility of started audiobooks." checked>\n'
-    html += '        <label for="started" title="Click this checkbox to toggle the visibility of started audiobooks.">Started</label>\n'
-    html += '        <input type="checkbox" id="finished" title="Click this checkbox to toggle the visibility of finished audiobooks." checked>\n'
-    html += '        <label for="finished" title="Click this checkbox to toggle the visibility of finished audiobooks.">Finished</label>\n'
-    html += '      </div>\n'
-    html += create_sortable_books_table_html(books, filterable=True)
-    return html
+    html_str =  '      <h1>Audiobooks</h1>\n'
+    html_str += '      <div class="filters">\n'
+    html_str += '        <strong>Filter by Status:</strong>\n'
+    html_str += '        <input type="checkbox" id="new" title="Click this checkbox to toggle the visibility of new audiobooks." checked>\n'
+    html_str += '        <label for="new" title="Click this checkbox to toggle the visibility of new audiobooks.">New</label>\n'
+    html_str += '        <input type="checkbox" id="started" title="Click this checkbox to toggle the visibility of started audiobooks." checked>\n'
+    html_str += '        <label for="started" title="Click this checkbox to toggle the visibility of started audiobooks.">Started</label>\n'
+    html_str += '        <input type="checkbox" id="finished" title="Click this checkbox to toggle the visibility of finished audiobooks." checked>\n'
+    html_str += '        <label for="finished" title="Click this checkbox to toggle the visibility of finished audiobooks.">Finished</label>\n'
+    html_str += '      </div>\n'
+    html_str += create_sortable_books_table_html(books, filterable=True)
+    return html_str
 
 
 def create_author_html(author):
@@ -694,10 +694,10 @@ def create_author_html(author):
     author is a dict containing information about the author and the books the
     author has created.
     """
-    html = ""
-    html += f'    <h1>Audiobooks Created by {author["display_name"]}</h1>\n'
-    html += create_sortable_books_table_html(author["books"])
-    return html
+    html_str = ""
+    html_str += f'    <h1>Audiobooks Created by {html.escape(author["display_name"])}</h1>\n'
+    html_str += create_sortable_books_table_html(author["books"])
+    return html_str
 
 
 def create_authors_td_html(authors):
@@ -712,10 +712,10 @@ def create_authors_td_html(authors):
             # The sort key comes from the name of the first author.
             author_name_sort_key = author["name_sort_key"]
             first_author = False
-        author_string = f'<a href="{index_path}?author_id={author["id"]}">{author["reverse_name"]}</a>'
+        author_string = f'<a href="{index_path}?author_id={html.escape(str(author["id"]))}">{html.escape(author["reverse_name"])}</a>'
         author_strings.append(author_string)
-    html = f'            <td data-sortkey="{author_name_sort_key}" class="nowrap">{"<br>".join(author_strings)}</td>\n'
-    return html
+    html_str = f'            <td data-sortkey="{html.escape(author_name_sort_key)}" class="nowrap">{"<br>".join(author_strings)}</td>\n'
+    return html_str
 
 
 def create_book_html(book):
@@ -736,24 +736,22 @@ def create_book_html(book):
     author_strings = []
     author_html_strings = []
     for author in book["authors"]:
-        author_name = author['display_name']
-        author_html_string = f"""<a href="{index_path}?author_id={author['id']}">{author['reverse_name']}</a>"""
+        author_html_string = f"""<a href="{index_path}?author_id={html.escape(str(author['id']))}">{html.escape(author['display_name'])}</a>"""
         author_html_strings.append(author_html_string)
-        author_strings.append(author_name)
+        author_strings.append(author["display_name"])
     
     translator_html_strings = []
     for translator in book["translators"]:
-        translator_name = translator['display_name']
-        translator_string = f"""<a href="{index_path}?translator_id={translator['id']}">{translator_name}</a>"""
-        translator_html_strings.append(translator_string)
+        translator_html_string = f"""<a href="{index_path}?translator_id={html.escape(str(translator['id']))}">{html.escape(translator['display_name'])}</a>"""
+        translator_html_strings.append(translator_html_string)
 
     narrator_html_strings = []
     for narrator in book["narrators"]:
-        narrator_name = narrator['display_name']
-        narrator_string = f"""<a href="{index_path}?narrator_id={narrator['id']}">{narrator_name}</a>"""
-        narrator_html_strings.append(narrator_string)
+        narrator_html_string = f"""<a href="{index_path}?narrator_id={html.escape(str(narrator['id']))}">{html.escape(narrator['display_name'])}</a>"""
+        narrator_html_strings.append(narrator_html_string)
 
     # Build the by authors string for the header.
+    # This algorithm works, but there must be an easier way.
     by_authors_string = author_strings[0]
     author_count = 1
     author_flag = True
@@ -773,132 +771,132 @@ def create_book_html(book):
     # Build and return HTML containing an h1 header, an h2 Audiobook Information header
     # with an accompanying table, and an h2 Listener Notes header with an
     # accompanying table.
-    html = ''
-    html += f'      <h1><cite>{book["title"]}</cite><br>by {by_authors_string}</h1>\n'
-    html += '      <h2>Audiobook Information</h2>\n'
-    html += '      <table>\n'
-    html += '        <tbody class="vertical">\n'
+    html_str = ''
+    html_str += f'      <h1><cite>{html.escape(book["title"])}</cite><br>by {html.escape(by_authors_string)}</h1>\n'
+    html_str += '      <h2>Audiobook Information</h2>\n'
+    html_str += '      <table>\n'
+    html_str += '        <tbody class="vertical">\n'
 
     # Title
-    html += '          <tr>\n'
-    html += '            <th class="vertical">Title</th>\n'
-    html += f'            <td><cite>{book["title"]}</cite></td>\n'
-    html += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical">Title</th>\n'
+    html_str += f'            <td><cite>{html.escape(book["title"])}</cite></td>\n'
+    html_str += '          </tr>\n'
 
     # Authors
-    html += '          <tr>\n'
-    html += '            <th class="vertical">Author{}</th>\n'.format(
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical">Author{}</th>\n'.format(
         "s" if len(author_strings) > 1 else "")
-    html += f'            <td>{"<br>".join(author_html_strings)}</td>\n'
-    html += '          </tr>\n'
+    html_str += f'            <td>{"<br>".join(author_html_strings)}</td>\n'
+    html_str += '          </tr>\n'
 
     # Length
-    html += '          <tr>\n'
-    html += '            <th class="vertical nowrap">Length (hr:min)</th>\n'
-    html += f'            <td>{book["length"]}</td>\n'
-    html += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical nowrap">Length (hr:min)</th>\n'
+    html_str += f'            <td>{html.escape(book["length"])}</td>\n'
+    html_str += '          </tr>\n'
 
     # Translators
     if len(translator_html_strings) > 0:
-        html += '          <tr>\n'
-        html += '            <th class="vertical">Translator{}</th>\n'.format(
+        html_str += '          <tr>\n'
+        html_str += '            <th class="vertical">Translator{}</th>\n'.format(
             "s" if len(translator_html_strings) > 1 else "")
-        html += f'            <td>{", ".join(translator_html_strings)}</td>\n'
-        html += '          </tr>\n'
+        html_str += f'            <td>{"<br>".join(translator_html_strings)}</td>\n'
+        html_str += '          </tr>\n'
 
     # Narrators
-    html += '          <tr>\n'
-    html += '            <th class="vertical">Narrator{}</th>\n'.format(
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical">Narrator{}</th>\n'.format(
         "s" if len(narrator_html_strings) != 1 else "")
-    html += f'            <td>{", ".join(narrator_html_strings)}</td>\n'
-    html += '          </tr>\n'
+    html_str += f'            <td>{"<br>".join(narrator_html_strings)}</td>\n'
+    html_str += '          </tr>\n'
 
     # Book Pub. Date
     if book_pub_date:
-        html += '          <tr>\n'
-        html += '            <th class="vertical nowrap">Book Pub. Date</th>\n'
-        html += f'            <td>{book_pub_date}</td>\n'
-        html += '          </tr>\n'
+        html_str += '          <tr>\n'
+        html_str += '            <th class="vertical nowrap">Book Pub. Date</th>\n'
+        html_str += f'            <td>{html.escape(book_pub_date)}</td>\n'
+        html_str += '          </tr>\n'
 
     # Audio Pub. Date
     if audio_pub_date:
-        html += '          <tr>\n'
-        html += '            <th class="vertical nowrap">Audio Pub. Date</th>\n'
-        html += f'            <td>{audio_pub_date}</td>\n'
-        html += '          </tr>\n'
+        html_str += '          <tr>\n'
+        html_str += '            <th class="vertical nowrap">Audio Pub. Date</th>\n'
+        html_str += f'            <td>{html.escape(audio_pub_date)}</td>\n'
+        html_str += '          </tr>\n'
 
     # Acquired By
-    html += '          <tr>\n'
-    html += '            <th class="vertical nowrap">Acquired By</th>\n'
-    html += f'            <td>{book["acquisition"]["username"]}</td>\n'
-    html += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical nowrap">Acquired By</th>\n'
+    html_str += f'            <td>{html.escape(book["acquisition"]["username"])}</td>\n'
+    html_str += '          </tr>\n'
 
     # Vendor
-    html += '          <tr>\n'
-    html += '            <th class="vertical">Vendor</th>\n'
-    html += f'            <td>{book["acquisition"]["vendor_name"]}</td>\n'
-    html += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical">Vendor</th>\n'
+    html_str += f'            <td>{html.escape(book["acquisition"]["vendor_name"])}</td>\n'
+    html_str += '          </tr>\n'
 
     # Acquisition Type
-    html += '          <tr>\n'
-    html += '            <th class="vertical nowrap">Acquisition Type</th>\n'
-    html += f'            <td>{book["acquisition"]["acquisition_type"]}</td>\n'
-    html += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical nowrap">Acquisition Type</th>\n'
+    html_str += f'            <td>{html.escape(book["acquisition"]["acquisition_type"])}</td>\n'
+    html_str += '          </tr>\n'
 
     # Acquisition Date
-    html += '          <tr>\n'
-    html += '            <th class="vertical nowrap">Acquisition Date</th>\n'
-    html += f'            <td>{book["acquisition"]["acquisition_date"]}</td>\n'
-    html += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th class="vertical nowrap">Acquisition Date</th>\n'
+    html_str += f'            <td>{html.escape(book["acquisition"]["acquisition_date"])}</td>\n'
+    html_str += '          </tr>\n'
 
     # Discontinued
     if discontinued:
-        html += '          <tr>\n'
-        html += '            <th class="vertical">Discontinued</th>\n'
-        html += f'            <td>{discontinued}</td>\n'
-        html += '          </tr>\n'
+        html_str += '          <tr>\n'
+        html_str += '            <th class="vertical">Discontinued</th>\n'
+        html_str += f'            <td>{html.escape(discontinued)}</td>\n'
+        html_str += '          </tr>\n'
 
     # Audible Credits
     if book["acquisition"]["audible_credits"] is not None:
-        html += '          <tr>\n'
-        html += '            <th class="vertical nowrap">Audible Credits</th>\n'
-        html += f'            <td>{book["acquisition"]["audible_credits"]}</td>\n'
-        html += '          </tr>\n'
+        html_str += '          <tr>\n'
+        html_str += '            <th class="vertical nowrap">Audible Credits</th>\n'
+        html_str += f'            <td>{html.escape(str(book["acquisition"]["audible_credits"]))}</td>\n'
+        html_str += '          </tr>\n'
 
     # Price (Dollars)
     if price_in_dollars:
-        html += '          <tr>\n'
-        html += '            <th class="vertical">Price</th>\n'
-        html += f'            <td>{price_in_dollars}</td>\n'
-        html += '          </tr>\n'
+        html_str += '          <tr>\n'
+        html_str += '            <th class="vertical">Price</th>\n'
+        html_str += f'            <td>{html.escape(price_in_dollars)}</td>\n'
+        html_str += '          </tr>\n'
 
-    html += '        </tbody>\n'
-    html += '      </table>\n'
+    html_str += '        </tbody>\n'
+    html_str += '      </table>\n'
 
     # Listener Notes
-    html += '      <h2>Listener Notes</h2>\n'
-    html += '      <table>\n'
-    html += '        <thead>\n'
-    html += '          <tr>\n'
+    html_str += '      <h2>Listener Notes</h2>\n'
+    html_str += '      <table>\n'
+    html_str += '        <thead>\n'
+    html_str += '          <tr>\n'
     headers = ('Listener', 'Status', 'Finished', "Rating", "Comments")
     for header in headers:
-        html += f'            <th>{header}</th>\n'
-    html += '          </tr>\n'
-    html += '        </thead>\n'
-    html += '        <tbody>\n'
+        html_str += f'            <th>{html.escape(header)}</th>\n'
+    html_str += '          </tr>\n'
+    html_str += '        </thead>\n'
+    html_str += '        <tbody>\n'
     for note in book["notes"]:
-        html += '          <tr>\n'
-        html += f'            <td>{note["username"]}</td>\n'
-        html += f'            <td>{"" if note["status"] is None else note["status"]}</td>\n'
-        html += f'            <td class="nowrap">{"" if note["finish_date"] is None else note["finish_date"]}</td>\n'
+        html_str += '          <tr>\n'
+        html_str += f'            <td>{html.escape(note["username"])}</td>\n'
+        html_str += f'            <td>{html.escape("" if note["status"] is None else note["status"])}</td>\n'
+        html_str += f'            <td class="nowrap">{html.escape("" if note["finish_date"] is None else note["finish_date"])}</td>\n'
         rating = ""
         if note["rating_stars"] is not None:
             rating = str(note["rating_stars"]) + " " + note["rating_description"]
-        html += f'            <td class="nowrap">{rating}</td>\n'
-        html += f'            <td>{"" if note["comments"] is None else note["comments"]}</td>\n'
-        html += '          </tr>\n'
-    html += '      </table>\n'
-    return html
+        html_str += f'            <td class="nowrap">{html.escape(rating)}</td>\n'
+        html_str += f'            <td>{html.escape("" if note["comments"] is None else note["comments"])}</td>\n'
+        html_str += '          </tr>\n'
+    html_str += '      </table>\n'
+    return html_str
 
 
 def create_end_html():
@@ -914,10 +912,10 @@ def create_narrator_html(narrator):
     narrator is a dict containing information about the narrator and the books the
     narrator has narrated.
     """
-    html = ""
-    html += f'    <h1>Audiobooks Narrated by {narrator["display_name"]}</h1>\n'
-    html += create_sortable_books_table_html(narrator["books"])
-    return html
+    html_str = ""
+    html_str += f'    <h1>Audiobooks Narrated by {html.escape(narrator["display_name"])}</h1>\n'
+    html_str += create_sortable_books_table_html(narrator["books"])
+    return html_str
 
 
 def create_sortable_books_table_html(books, filterable=False):
@@ -928,26 +926,26 @@ def create_sortable_books_table_html(books, filterable=False):
     index_path = get_index_path()
 
     th_tool_tip = "Click this header to sort the table by the values in this column."
-    html = ''
+    html_str = ''
     if filterable:
-        html += '      <table id="audiobooks" class="filterable">\n'
+        html_str += '      <table id="audiobooks" class="filterable">\n'
     else:
-        html += '      <table id="audiobooks">\n'
-    html += '        <thead>\n'
-    html += '          <tr>\n'
+        html_str += '      <table id="audiobooks">\n'
+    html_str += '        <thead>\n'
+    html_str += '          <tr>\n'
 
     # Since the table is sorted by title, put the up arrow symbol in the
     # span element.
-    html += f'            <th class="sortable nowrap" title="{th_tool_tip}">Title <span>⭡</span></th>\n'
-    html += f'            <th class="sortable nowrap" title="{th_tool_tip}">Authors <span>⭥</span></th>\n'
-    html += f'            <th class="sortable nowrap" title="{th_tool_tip}">Rating <span>⭥</span></th>\n'
-    html += f'            <th class="sortable nowrap" title="{th_tool_tip}">Length <span>⭥</span></th>\n'
-    html += f'            <th class="sortable nowrap" title="{th_tool_tip}">Acquired <span>⭥</span></th>\n'
-    html += f'            <th class="sortable nowrap" title="{th_tool_tip}">Status <span>⭥</span></th>\n'
-    html += f'            <th class="sortable nowrap" title="{th_tool_tip}">Finished <span>⭥</span></th>\n'
-    html += '          </tr>\n'
-    html += '        </thead>\n'
-    html += '        <tbody>\n'
+    html_str += f'            <th class="sortable nowrap" title="{th_tool_tip}">Title <span>⭡</span></th>\n'
+    html_str += f'            <th class="sortable nowrap" title="{th_tool_tip}">Authors <span>⭥</span></th>\n'
+    html_str += f'            <th class="sortable nowrap" title="{th_tool_tip}">Rating <span>⭥</span></th>\n'
+    html_str += f'            <th class="sortable nowrap" title="{th_tool_tip}">Length <span>⭥</span></th>\n'
+    html_str += f'            <th class="sortable nowrap" title="{th_tool_tip}">Acquired <span>⭥</span></th>\n'
+    html_str += f'            <th class="sortable nowrap" title="{th_tool_tip}">Status <span>⭥</span></th>\n'
+    html_str += f'            <th class="sortable nowrap" title="{th_tool_tip}">Finished <span>⭥</span></th>\n'
+    html_str += '          </tr>\n'
+    html_str += '        </thead>\n'
+    html_str += '        <tbody>\n'
 
     # Sort by the title sort key.
     sorted_books = sorted(books, key=lambda book: book["title_sort_key"])
@@ -955,19 +953,19 @@ def create_sortable_books_table_html(books, filterable=False):
     # Get the book attributes for the table.
     for book in sorted_books:
         # Create table rows for all books, reporting only the first finished date.
-        html += f"""          <tr class="{book['notes'][0]['status'].lower()}">\n"""
-        html += f"""            <td data-sortkey="{book['title_sort_key']}"><a href="{index_path}?book_id={book['id']}">{book['title']}</a></td>\n"""
-        html += create_authors_td_html(book["authors"])
-        html += f"""            <td class="nowrap">{book['rating']}</td>\n"""
-        html += f"""            <td data-sortkey="{book['length_sort_key']}" class="right">{book["length"]}</td>\n"""
-        html += f"""            <td>{book["acquisition"]["acquisition_date"]}</td>\n"""
-        html += f"""            <td>{book["notes"][0]["status"]}</td>\n"""
-        html += f'            <td>{book["finish_date_string"]}</td>\n'
-        html += '          </tr>\n'
+        html_str += f"""          <tr class="{html.escape(book['notes'][0]['status'].lower())}">\n"""
+        html_str += f"""            <td data-sortkey="{html.escape(book['title_sort_key'])}"><a href="{index_path}?book_id={html.escape(str(book['id']))}">{html.escape(book['title'])}</a></td>\n"""
+        html_str += create_authors_td_html(book["authors"])
+        html_str += f"""            <td class="nowrap">{html.escape(book['rating'])}</td>\n"""
+        html_str += f"""            <td data-sortkey="{html.escape(str(book['length_sort_key']))}" class="right">{html.escape(book["length"])}</td>\n"""
+        html_str += f"""            <td>{html.escape(book["acquisition"]["acquisition_date"])}</td>\n"""
+        html_str += f"""            <td>{html.escape(book["notes"][0]["status"])}</td>\n"""
+        html_str += f'            <td>{html.escape(book["finish_date_string"])}</td>\n'
+        html_str += '          </tr>\n'
 
-    html += '        </tbody>\n'
-    html += '      </table>\n'
-    return html
+    html_str += '        </tbody>\n'
+    html_str += '      </table>\n'
+    return html_str
 
 
 def create_start_html(body_class="tables"):
@@ -1024,10 +1022,10 @@ def create_translator_html(translator):
     translator is a dict containing information about the translator and the books the
     translator has translated.
     """
-    html = ""
-    html += f'    <h1>Audiobooks Translated by {translator["display_name"]}</h1>\n'
-    html += create_sortable_books_table_html(translator["books"])
-    return html
+    html_str = ""
+    html_str += f'    <h1>Audiobooks Translated by {html.escape(translator["display_name"])}</h1>\n'
+    html_str += create_sortable_books_table_html(translator["books"])
+    return html_str
 
 
 ########## Get data code.
@@ -1384,37 +1382,37 @@ def get_translators_for_book(conn, book_id):
 ########## Display code.
 
 def display_404_not_found():
-    html = create_start_html(body_class="about")
-    html += create_404_html()
-    html += create_end_html()
+    html_str = create_start_html(body_class="about")
+    html_str += create_404_html()
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_about():
-    html = create_start_html(body_class="about")
-    html += create_about_html()
-    html += create_end_html()
+    html_str = create_start_html(body_class="about")
+    html_str += create_about_html()
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_all_authors(conn):
     authors = get_all_authors_data(conn)
-    html = create_start_html(body_class="tables")
-    html += create_all_authors_table_html(authors)
-    html += create_end_html()
+    html_str = create_start_html(body_class="tables")
+    html_str += create_all_authors_table_html(authors)
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_all_books(conn):
     books = get_all_books_data(conn)
-    html = create_start_html(body_class="tables")
-    html += create_all_books_table_html(books)
-    html += create_end_html()
+    html_str = create_start_html(body_class="tables")
+    html_str += create_all_books_table_html(books)
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_author(conn, author_id):
@@ -1453,6 +1451,7 @@ def display_book(conn, book_id):
         else:
             html_str += create_book_html(book)
     else:
+        # html_str += f'    <h1>Book ID {book_id} Not Found</h1>\n'
         html_str += f'    <h1>Invalid book ID "{html.escape(book_id)}"</h1>\n'
     html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
@@ -1482,11 +1481,11 @@ def display_narrator(conn, narrator_id):
 
 def display_summaries(conn):
     summaries = get_summaries_data(conn)
-    html = create_start_html(body_class="tables")
-    html += create_summaries_html(summaries)
-    html += create_end_html()
+    html_str = create_start_html(body_class="tables")
+    html_str += create_summaries_html(summaries)
+    html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-    print(html)
+    print(html_str)
 
 
 def display_translator(conn, translator_id):
