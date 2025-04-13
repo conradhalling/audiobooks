@@ -4,7 +4,6 @@ The script will not load the data more than once.
 
 EXAMPLE
     python3 save_audible_data.py \
-        --user          username \
         --csv_file      data/audible.csv \
         --db_file       data/audiobooks.sqlite3 \
         --log_file      logs/save_audible_data.log \
@@ -14,16 +13,18 @@ EXAMPLE
 
 
 import argparse
-import getpass
 import logging
 import os
 import sys
 import textwrap
 import traceback
 
+import dotenv
+dotenv.load_dotenv()
+
 import audible_processor    # audible_processor.load_csv_data loads CSV data into
-                            # the database
-import db.conn              # db.conn.conn contains the sqlite3.Connection object.
+                            # the database.
+import db                   # db interacts with the SQLite3 database.
 import utils                # utils.init_logging initializes the logger.
 
 logger = logging.getLogger(__name__)
@@ -36,17 +37,11 @@ def parse_args():
         epilog=textwrap.dedent(rf"""
         Example:
           python3 {os.path.basename(__file__)} \
-            --username      username \
             --csv_file      data/audible.csv \
             --db_file       data/audiobooks.sqlite3 \
             --log_file      logs/save_audible_data.log \
             --log_level     debug \
             --transaction   commit""")
-    )
-    parser.add_argument(
-        "--username",
-        help="username for data being loaded",
-        required=True,
     )
     parser.add_argument(
         "--csv_file",
@@ -83,14 +78,17 @@ def main():
     args = parse_args()
     utils.init_logging(args.log_file, args.log_level)
     db.connect(db_file=args.db_file)
+
     # Raise an exception if username or password is not verified.
-    password = getpass.getpass()
-    db.user.verify_username_password(args.username, password)
+    username = os.environ.get('USERNAME')
+    password = os.environ.get('PASSWORD')
+    db.user.verify_username_password(username, password)
 
     # Process the data using a database transaction.
     db.begin_transaction()
+    exception_occurred = False
     try:
-        audible_processor.save_data(args.username, args.csv_file)
+        audible_processor.save_data(username, args.csv_file)
         # Commit or roll back database changes. If the rollback is successful,
         # the size of the database file will be 0 bytes.
         if args.transaction == "commit":
@@ -108,7 +106,12 @@ def main():
         print("  Done.")
         print(f"The exception was '{exc}'.")
         traceback.print_exc(file=sys.stdout)
-    db.close()
+        exception_occurred = True
+    finally:
+        db.close()
+    
+    if exception_occurred:
+        exit(1)
 
 
 if __name__ == "__main__":

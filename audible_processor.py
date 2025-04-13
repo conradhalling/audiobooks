@@ -253,14 +253,16 @@ def save_translators(translator_strings):
         names = translator_string.split(",")
         if len(names) == 1:
             forename = names[0]
+            surname = None
         elif len(names) == 2:
             surname = names[0]
             forename = names[1]
         else:
             raise ValueError("Translator name '{name_string}' formatted incorrectly with too many commas.")
-        surname = surname.strip()
-        if surname == "":
-            surname = None
+        if surname is not None:
+            surname = surname.strip()
+            if surname == "":
+                surname = None
         forename = forename.strip()
         if forename == "":
             raise ValueError(f"The translator's forename '{forename}' must not be empty.")

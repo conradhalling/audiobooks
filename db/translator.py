@@ -18,7 +18,7 @@ def create_table():
         tbl_translator
         (
             id INTEGER PRIMARY KEY,
-            surname TEXT NOT NULL,
+            surname TEXT,
             forename TEXT NOT NULL,
             UNIQUE(surname, forename)
         ) STRICT

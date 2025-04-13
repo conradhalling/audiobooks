@@ -1286,7 +1286,6 @@ def get_narrators_for_book(conn, book_id):
 
 def get_summaries_data(conn):
     summaries = {}
-
     # year_counts is a list of dicts with keys "year", "acquired", and
     # finished" and values the year, the number of books acquired that
     # year, and the number of books finished that year.
