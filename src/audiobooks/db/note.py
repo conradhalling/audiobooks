@@ -7,7 +7,7 @@ The user will update the note when the user finishes the audiobook.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import conn
+from .. import db
 
 
 def create_table():
@@ -31,7 +31,7 @@ def create_table():
             FOREIGN KEY (rating_id) REFERENCES tbl_rating(id)
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 
 def insert(user_id, book_id, status_id, finish_date, rating_id, comments):
@@ -56,7 +56,7 @@ def insert(user_id, book_id, status_id, finish_date, rating_id, comments):
         )
         VALUES (?, ?, ?, ?, ?, ?)
     """
-    cur = conn.conn.execute(
+    cur = db.conn.execute(
         sql_insert,
         (user_id, book_id, status_id, finish_date, rating_id, comments))
     note_id = cur.lastrowid
@@ -125,7 +125,7 @@ def select_id(user_id, book_id, status_id, finish_date, rating_id, comments):
         values.append(rating_id)
     if comments is not None:
         values.append(comments)
-    cur = conn.conn.execute(sql_select_id, values)
+    cur = db.conn.execute(sql_select_id, values)
     db_row = cur.fetchone()
     logger.debug(f"Returned row {db_row}")
     note_id = None
@@ -135,5 +135,38 @@ def select_id(user_id, book_id, status_id, finish_date, rating_id, comments):
     return note_id
 
 
+def select_notes_for_book(book_id):
+    """
+    Given a book's ID, return result set rows containing the notes
+    in chronological order using tbl_note.id.
+    """
+    sql_select_notes_for_book = """
+        SELECT
+            tbl_note.id,
+            tbl_user.username,
+            tbl_status.name AS status_name,
+            tbl_note.finish_date,
+            tbl_rating.stars,
+            tbl_rating.description,
+            tbl_note.comments
+        FROM
+            tbl_note
+            INNER JOIN tbl_user
+                ON tbl_note.user_id = tbl_user.id
+            LEFT OUTER JOIN tbl_status
+                ON tbl_note.status_id = tbl_status.id
+            LEFT OUTER JOIN tbl_rating
+                ON tbl_note.rating_id = tbl_rating.id
+        WHERE
+            tbl_note.book_id = ?
+        ORDER BY
+            tbl_note.id
+    """
+    cur = db.conn.execute(sql_select_notes_for_book, (book_id,))
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+
 def update():
-    pass
+    raise NotImplemented

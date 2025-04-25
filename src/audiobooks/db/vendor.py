@@ -5,7 +5,7 @@ Database interactions with tbl_vendor.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import conn
+from .. import db
 
 
 def create_table():
@@ -18,7 +18,7 @@ def create_table():
             name TEXT NOT NULL
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 
 def insert(vendor):
@@ -30,7 +30,7 @@ def insert(vendor):
         )
         VALUES (?)
     """
-    cur = conn.conn.execute(sql_insert, (vendor,))
+    cur = db.conn.execute(sql_insert, (vendor,))
     vendor_id = cur.lastrowid
     logger.debug(f"New vendor_id: {vendor_id}")
     return vendor_id
@@ -60,7 +60,7 @@ def select_id(vendor):
         WHERE
             tbl_vendor.name = ?
     """
-    cur = conn.conn.execute(sql_select_id, (vendor,))
+    cur = db.conn.execute(sql_select_id, (vendor,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for vendor '{vendor}': {db_row}")
     vendor_id = None

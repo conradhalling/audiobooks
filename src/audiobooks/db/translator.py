@@ -5,7 +5,7 @@ Database interactions with tbl_translator.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import conn
+from .. import db
 
 
 def create_table():
@@ -23,7 +23,7 @@ def create_table():
             UNIQUE(surname, forename)
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 
 def insert(surname, forename):
@@ -41,7 +41,7 @@ def insert(surname, forename):
         )
         VALUES (?, ?)
     """
-    cur = conn.conn.execute(sql_insert, (surname, forename,))
+    cur = db.conn.execute(sql_insert, (surname, forename,))
     translator_id = cur.lastrowid
     cur.close()
     logger.debug(f"New translator_id: {translator_id}")
@@ -79,7 +79,7 @@ def select_id(surname, forename):
             tbl_translator.surname = ?
             AND tbl_translator.forename = ?
     """
-    cur = conn.conn.execute(sql_select_id, (surname, forename,))
+    cur = db.conn.execute(sql_select_id, (surname, forename,))
     db_row = cur.fetchone()
     cur.close()
     logger.debug(f"Returned row: {db_row}")
@@ -88,3 +88,49 @@ def select_id(surname, forename):
         translator_id = db_row[0]
     logger.debug(f"Existing translator_id: {translator_id}")
     return translator_id
+
+
+def select_ids_for_book(book_id):
+    """
+    Given a book's ID, return result set rows containing the IDs of the
+    translators of the book.
+
+    Return an empty list if no translators are found.
+    """
+    sql_select_ids_for_book = """
+        SELECT
+            tbl_translator.id
+        FROM
+            tbl_book_translator
+            INNER JOIN tbl_translator
+                ON tbl_book_translator.translator_id = tbl_translator.id
+        WHERE
+            tbl_book_translator.book_id = ?
+    """
+    cur = db.conn.execute(sql_select_ids_for_book, (book_id,))
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+
+def select_translator(translator_id):
+    """
+    Given a translator's ID, return a result set row containing the translator's
+    attributes.
+
+    Return None if the translator's ID is not in the database.
+    """
+    sql_select_translator = """
+        SELECT
+            tbl_translator.id,
+            tbl_translator.surname,
+            tbl_translator.forename
+        FROM
+            tbl_translator
+        WHERE
+            tbl_translator.id = ?
+    """
+    cur = db.conn.execute(sql_select_translator, (translator_id,))
+    row = cur.fetchone()
+    cur.close()
+    return row

@@ -5,7 +5,7 @@ Database interactions with tbl_status.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import conn
+from .. import db
 
 
 def create_table():
@@ -21,7 +21,7 @@ def create_table():
             name TEXT NOT NULL UNIQUE
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 
 def insert(status):
@@ -37,7 +37,7 @@ def insert(status):
         )
         VALUES (?)
     """
-    cur = conn.conn.execute(sql_insert, (status,))
+    cur = db.conn.execute(sql_insert, (status,))
     status_id = cur.lastrowid
     logger.debug(f"New status_id: {status_id}")
     return status_id
@@ -71,7 +71,7 @@ def select_id(status):
         WHERE
             tbl_status.name = ?
     """
-    cur = conn.conn.execute(sql_select_id, (status,))
+    cur = db.conn.execute(sql_select_id, (status,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for status '{status}': {db_row}")
     status_id = None

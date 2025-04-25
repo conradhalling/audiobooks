@@ -1,3 +1,7 @@
+"""
+Configuration functions.
+"""
+
 import os
 
 def get_index_path():

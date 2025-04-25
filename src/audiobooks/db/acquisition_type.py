@@ -4,7 +4,7 @@ Database interactions with tbl_acquisition_type.
 
 import logging
 
-from . import conn
+from .. import db
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def create_table():
             name TEXT NOT NULL UNIQUE
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 
 def insert(acquisition_type):
@@ -33,7 +33,7 @@ def insert(acquisition_type):
         )
         VALUES (?)
     """
-    cur = conn.conn.execute(sql_insert, (acquisition_type,))
+    cur = db.conn.execute(sql_insert, (acquisition_type,))
     acquisition_type_id = cur.lastrowid
     logger.debug(f"New acquisition_type_id: {acquisition_type_id}")
     return acquisition_type_id
@@ -63,7 +63,7 @@ def select_id(acquisition_type):
         WHERE
             tbl_acquisition_type.name = ?
     """
-    cur = conn.conn.execute(sql_select_id, (acquisition_type,))
+    cur = db.conn.execute(sql_select_id, (acquisition_type,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for acquisiton_type '{acquisition_type}': {db_row}")
     acquisition_type_id = None

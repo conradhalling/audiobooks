@@ -5,7 +5,7 @@ Database interactions with tbl_rating.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import conn
+from .. import db
 
 
 def create_table():
@@ -22,7 +22,7 @@ def create_table():
             description TEXT NOT NULL UNIQUE
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
     ratings = [
         (0, "terrible",),
         (1, "poor",),
@@ -50,7 +50,7 @@ def insert(stars, description):
         )
         VALUES (?, ?)
     """
-    cur = conn.conn.execute(sql_insert, (stars, description,))
+    cur = db.conn.execute(sql_insert, (stars, description,))
     rating_id = cur.lastrowid
     logger.debug(f"New rating_id for stars {stars} description '{description}': {rating_id}")
     return rating_id
@@ -83,7 +83,7 @@ def select_id(stars, description):
             tbl_rating.stars = ?
             and tbl_rating.description = ?
     """
-    cur = conn.conn.execute(sql_select_id, (stars, description,))
+    cur = db.conn.execute(sql_select_id, (stars, description,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for stars {stars} and description '{description}': {db_row}")
     rating_id = None
@@ -106,7 +106,7 @@ def select_id_by_stars(stars):
         WHERE
             tbl_rating.stars = ?
     """
-    cur = conn.conn.execute(sql_select_id, (stars,))
+    cur = db.conn.execute(sql_select_id, (stars,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for stars {stars}': {db_row}")
     rating_id = None

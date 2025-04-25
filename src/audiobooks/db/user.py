@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 import argon2
 
-from . import conn
+from .. import db
 
 
 def create_table():
@@ -25,7 +25,7 @@ def create_table():
             password_hash TEXT NOT NULL
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 
 def insert(username, email, password_hash):
@@ -45,7 +45,7 @@ def insert(username, email, password_hash):
         )
         VALUES (?, ?, ?)
     """
-    cur = conn.conn.execute(sql_insert, (username, email, password_hash,))
+    cur = db.conn.execute(sql_insert, (username, email, password_hash,))
     user_id = cur.lastrowid
     logger.debug(f"New user_id: {user_id}")
     return user_id
@@ -65,7 +65,7 @@ def select_password_hash(username):
         WHERE
             tbl_user.username = ?
     """
-    cur = conn.conn.execute(sql_select_password_hash, (username,))
+    cur = db.conn.execute(sql_select_password_hash, (username,))
     db_row = cur.fetchone()
     # logger.debug(f"Returned row for username '{username}': {db_row}")
     if db_row is None:
@@ -88,7 +88,7 @@ def select_user_id(username):
         WHERE
             tbl_user.username = ?
     """
-    cur = conn.conn.execute(sql_select_user, (username,))
+    cur = db.conn.execute(sql_select_user, (username,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for username '{username}': {db_row}")
     user_id = None

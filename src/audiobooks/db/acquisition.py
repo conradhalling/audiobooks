@@ -5,7 +5,7 @@ Database interactions with tbl_book_acquisition.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import conn
+from .. import db
 
 def create_table():
     """
@@ -32,7 +32,7 @@ def create_table():
             UNIQUE (user_id, book_id, vendor_id)
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 
 def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
@@ -64,16 +64,16 @@ def insert(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """
-    cur = conn.conn.execute(
+    cur = db.conn.execute(
         sql_insert,
         (
             user_id,
-            book_id, 
-            vendor_id, 
-            acquisition_type_id, 
+            book_id,
+            vendor_id,
+            acquisition_type_id,
             acquisition_date,
             discontinued,
-            audible_credits, 
+            audible_credits,
             price_in_cents,
         )
     )
@@ -106,6 +106,40 @@ def save(user_id, book_id, vendor_id, acquisition_type_id, acquisition_date,
     return acquisition_id
 
 
+def select_acquisition_for_book(book_id):
+    """
+    Given a book's ID, select and return a result set row containing the
+    acquisition information for the book.
+
+    Return None if the acquisition is not in the database.
+    """
+    sql_select_acquisition_for_book = """
+        SELECT
+            tbl_acquisition.id,
+            tbl_user.username,
+            tbl_vendor.name,
+            tbl_acquisition_type.name,
+            tbl_acquisition.acquisition_date,
+            tbl_acquisition.discontinued,
+            tbl_acquisition.audible_credits,
+            tbl_acquisition.price_in_cents
+        FROM
+            tbl_acquisition
+            INNER JOIN tbl_user
+                ON tbl_acquisition.user_id = tbl_user.id
+            INNER JOIN tbl_vendor
+                ON tbl_acquisition.vendor_id = tbl_vendor.id
+            INNER JOIN tbl_acquisition_type
+                ON tbl_acquisition.acquisition_type_id = tbl_acquisition_type.id
+        WHERE
+            tbl_acquisition.book_id = ?
+    """
+    cur = db.conn.execute(sql_select_acquisition_for_book, (book_id,))
+    row = cur.fetchone()
+    cur.close()
+    return row
+
+
 def select_id(user_id, book_id, vendor_id):
     """
     Select and return the ID for the acquisition.
@@ -124,7 +158,7 @@ def select_id(user_id, book_id, vendor_id):
     logger.debug(f"user_id: {user_id}")
     logger.debug(f"book_id: {book_id}")
     logger.debug(f"vendor_id: {vendor_id}")
-    cur = conn.conn.execute(sql_select_id, (user_id, book_id, vendor_id,))
+    cur = db.conn.execute(sql_select_id, (user_id, book_id, vendor_id,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row: {db_row}")
     acquisition_id = None

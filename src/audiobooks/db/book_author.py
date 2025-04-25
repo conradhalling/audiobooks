@@ -5,7 +5,7 @@ Database interactions with tbl_book_author.
 import logging
 logger = logging.getLogger(__name__)
 
-from . import conn
+from .. import db
 
 def create_table():
     """
@@ -23,7 +23,7 @@ def create_table():
             FOREIGN KEY (author_id) REFERENCES tbl_author(id)
         ) STRICT
     """
-    conn.conn.execute(sql_create_table)
+    db.conn.execute(sql_create_table)
 
 def insert(book_id, author_id):
     """
@@ -40,7 +40,7 @@ def insert(book_id, author_id):
             )
             VALUES (?, ?)
     """
-    cur = conn.conn.execute(sql_insert, (book_id, author_id,))
+    cur = db.conn.execute(sql_insert, (book_id, author_id,))
     book_author_id = cur.lastrowid
     logger.debug(f"New book_author_id: {book_author_id}")
     return book_author_id
@@ -75,7 +75,7 @@ def select_id(book_id, author_id):
             tbl_book_author.book_id = ?
             AND tbl_book_author.author_id = ?
     """
-    cur = conn.conn.execute(sql_select_id, (book_id, author_id,))
+    cur = db.conn.execute(sql_select_id, (book_id, author_id,))
     db_row = cur.fetchone()
     logger.debug(f"Returned row for book_id {book_id} author_id {author_id}: {db_row}")
     book_author_id = None
