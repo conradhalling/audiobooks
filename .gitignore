@@ -1,8 +1,5 @@
 # Specific to this project.
 __pycache__/
 .DS_Store
-.env
-.htaccess
-data/
-logs/
 venv310/
+new.cgi
