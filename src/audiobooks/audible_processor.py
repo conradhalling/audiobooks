@@ -6,7 +6,7 @@ import csv
 import logging
 logger = logging.getLogger(__name__)
 
-import db
+from . import db
 
 
 def convert_price(csv_price):
@@ -34,7 +34,7 @@ def save_data(username, csv_file):
     user_id = db.user.select_user_id(username)
     if user_id is None:
         raise ValueError(f"Invalid username {username}")
-    
+
     vendor = "audible.com"
     vendor_id = db.vendor.save(vendor)
 
@@ -93,33 +93,33 @@ def save_data(username, csv_file):
             logger.debug(f"hours: {csv_hours}")
             logger.debug(f"minutes: {csv_minutes}")
             book_id = save_book(
-                csv_title, 
-                csv_book_pub_date, 
-                csv_audio_pub_date, 
-                csv_hours, 
+                csv_title,
+                csv_book_pub_date,
+                csv_audio_pub_date,
+                csv_hours,
                 csv_minutes
             )
 
             for author_id in author_ids:
                 db.book_author.save(book_id, author_id)
-            
+
             for translator_id in translator_ids:
                 db.book_translator.save(book_id, translator_id)
-            
+
             for narrator_id in narrator_ids:
                 db.book_narrator.save(book_id, narrator_id)
-            
+
             acquisiton_id = save_acquisition(
                 user_id,
-                book_id, 
+                book_id,
                 vendor_id,
-                csv_acquisition_type, 
-                csv_acquisition_date, 
+                csv_acquisition_type,
+                csv_acquisition_date,
                 csv_discontinued,
-                csv_audible_credits, 
+                csv_audible_credits,
                 csv_price
             )
-            
+
             note_id = save_note(
                 user_id,
                 book_id,
@@ -158,15 +158,15 @@ def save_acquisition(
 
     if csv_acquisition_date == "":
         raise ValueError("csv_acquistion_date must not be empty")
-    
+
     discontinued = None
     if csv_discontinued != "":
         discontinued = csv_discontinued
-    
+
     audible_credits = None
     if csv_audible_credits != "":
         audible_credits = csv_audible_credits
-    
+
     price = convert_price(csv_price)
 
     db.acquisition.save(

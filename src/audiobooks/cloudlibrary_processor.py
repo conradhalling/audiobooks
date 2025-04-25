@@ -6,7 +6,7 @@ import csv
 import logging
 logger = logging.getLogger(__name__)
 
-import db
+from . import db
 
 
 def save_data(username, csv_file):
@@ -17,7 +17,7 @@ def save_data(username, csv_file):
     user_id = db.user.select_user_id(username)
     if user_id is None:
         raise ValueError(f"Invalid username {username}")
-    
+
     vendor = "cloudLibrary"
     vendor_id = db.vendor.save(vendor)
 
@@ -79,27 +79,27 @@ def save_data(username, csv_file):
                 csv_title,
                 csv_book_pub_date,
                 csv_audio_pub_date,
-                csv_hours, 
+                csv_hours,
                 csv_minutes
             )
 
             for author_id in author_ids:
                 db.book_author.save(book_id, author_id)
-            
+
             for translator_id in translator_ids:
                 db.book_translator.save(book_id, translator_id)
-            
+
             for narrator_id in narrator_ids:
                 db.book_narrator.save(book_id, narrator_id)
-            
+
             book_acquisiton_id = save_acquisition(
                 user_id,
                 book_id,
                 vendor_id,
-                csv_acquisition_type, 
+                csv_acquisition_type,
                 csv_acquisition_date,
             )
-            
+
             note_id = save_note(
                 user_id,
                 book_id,
@@ -114,7 +114,7 @@ def save_acquisition(
         user_id,
         book_id,
         vendor_id,
-        csv_acquisition_type, 
+        csv_acquisition_type,
         csv_acquisition_date,
         discontinued=None,
         audible_credits=None,
@@ -125,7 +125,7 @@ def save_acquisition(
     csv_acquisition_type = csv_acquisition_type.strip()
     acquisition_type = csv_acquisition_type
     acquisition_type_id = db.acquisition_type.save(acquisition_type)
-    
+
     if csv_acquisition_date == "":
         raise ValueError("csv_acquistion_date must not be empty")
     db.acquisition.save(

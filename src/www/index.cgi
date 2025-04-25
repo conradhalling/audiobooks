@@ -1,54 +1,30 @@
 #!/Users/halto/src/conradhalling/audiobooks/venv310/bin/python3
 
-"""
-This script does not use the db package (yet).
-"""
-
 import cgi
 import cgitb
-cgitb.enable()
 import html
 import os
 import sqlite3
 import sys
 import textwrap
 
+# Load environment variables from the .env file. The variables are:
+#   AUDIOBOOKS_DB           # Full path to the SQLite3 database file
+#   AUDIOBOOKS_ENVIRONMENT  # 'PRODUCTION' or 'TEST'
+#   AUDIOBOOKS_PYTHONPATH   # Path to the parent directory of the audiobooks package
+#   AUDIOBOOKS_WEBDIR       # Full URL path to the directory containing index.cgi
 import dotenv
 dotenv.load_dotenv()
 
-########## Configuration code.
-
-def get_index_path():
-    """
-    Return the webserver's path to the index.cgi script, using the
-    AUDIOBOOKS_WEBDIR environment variable.
-    """
-    index_path = f"{os.environ.get('AUDIOBOOKS_WEBDIR')}index.cgi"
-    return index_path
-
-
-def get_js_dir_path():
-    """
-    Return the webserver's path to the js directory, using the
-    AUDIOBOOKS_WEBDIR environment variable.
-    """
-    js_dir_path = f"{os.environ.get('AUDIOBOOKS_WEBDIR')}js/"
-    return js_dir_path
-
-
-def get_styles_path():
-    """
-    Return the webserver's path to the styles.css file, using the
-    AUDIOBOOKS_WEBDIR environment variable.
-    """
-    styles_path = f"{os.environ.get('AUDIOBOOKS_WEBDIR')}styles.css"
-    return styles_path
+# Modify sys.path to find the audiobooks package.
+sys.path.append(os.environ.get('AUDIOBOOKS_PYTHONPATH'))
+import audiobooks
 
 
 ########## Database interaction code
 
 def connect():
-    db_file = os.environ.get("SQLITE3_DB")
+    db_file = os.environ.get("AUDIOBOOKS_DB")
     conn = sqlite3.connect(database=db_file)
     sql_pragma_foreign_keys = "PRAGMA foreign_keys = ON"
     conn.execute(sql_pragma_foreign_keys)
@@ -542,13 +518,12 @@ def create_404_html():
 
 def create_about_html():
     html_str = """\
-    <h1>About This Website</h1>
+    <h1>About 🎧<em>Audio</em>books📚</h1>
     <p>
-      I have been recording the audiobooks I’ve listened to in an Excel
-      spreadsheet since May, 2008. But a spreadsheet does a poor job of handling
-      multiple authors for a book or multiple readings (listenings). So I wrote
-      this tool to make it easier to keep track of the audiobooks I’ve listened
-      to.
+      I have been tracking the audiobooks I’ve listened to since May, 2008. But
+      since my Excel spreadsheet does a poor job of handling multiple authors
+      for a book or multiple readings (listenings), I created this tool to make
+      it easier to keep track of the audiobooks I’ve listened to.
     </p>
     <p>
       Out of necessity, I wrote this application using Python CGI. This is
@@ -600,7 +575,7 @@ def create_all_authors_table_html(authors):
     html_str += '        </thead>\n'
     html_str += '        <tbody>\n'
 
-    index_path = get_index_path()
+    index_path = audiobooks.config.get_index_path()
     for author in authors:
         sorted_books = sorted(author["books"], key=lambda book: book["title_sort_key"])
         first_tr = True
@@ -625,7 +600,7 @@ def create_all_authors_table_html(authors):
 
 
 def create_summaries_html(summaries):
-    html_str = '      <h1>Summaries</h1>\n'
+    html_str = '      <h1>Summary</h1>\n'
     html_str += '      <h2>Annual Totals</h2>\n'
     html_str += '      <table>\n'
     html_str += '        <caption>Number of audiobooks acquired and finished each year</caption>\n'
@@ -704,7 +679,7 @@ def create_authors_td_html(authors):
     """
     authors is a list of dicts containing author data.
     """
-    index_path = get_index_path()
+    index_path = audiobooks.config.get_index_path()
     author_strings = []
     first_author = True
     for author in authors:
@@ -723,7 +698,7 @@ def create_book_html(book):
     book is a dict from which all information about an audiobook can
     be extracted.
     """
-    index_path = get_index_path()
+    index_path = audiobooks.config.get_index_path()
 
     # Precompute cell values.
     # length = "" if book["hours"] is None else f'{book["hours"]}:{book["minutes"]:02d}'
@@ -732,14 +707,14 @@ def create_book_html(book):
     price_in_dollars = "" if book["acquisition"]["price_in_cents"] is None\
         else "$" + f'{float(book["acquisition"]["price_in_cents"] / 100):.2f}'
     discontinued = "" if book["acquisition"]["discontinued"] is None else "discontinued"
-    
+
     author_strings = []
     author_html_strings = []
     for author in book["authors"]:
         author_html_string = f"""<a href="{index_path}?author_id={html.escape(str(author['id']))}">{html.escape(author['display_name'])}</a>"""
         author_html_strings.append(author_html_string)
         author_strings.append(author["display_name"])
-    
+
     translator_html_strings = []
     for translator in book["translators"]:
         translator_html_string = f"""<a href="{index_path}?translator_id={html.escape(str(translator['id']))}">{html.escape(translator['display_name'])}</a>"""
@@ -923,7 +898,7 @@ def create_sortable_books_table_html(books, filterable=False):
     The all books table is filterable; the books table associated with an
     author, translator, or narrator is not filterable.
     """
-    index_path = get_index_path()
+    index_path = audiobooks.config.get_index_path()
 
     th_tool_tip = "Click this header to sort the table by the values in this column."
     html_str = ''
@@ -979,9 +954,9 @@ def create_start_html(body_class="tables"):
     This function requires the AUDIOBOOKS_WEBDIR environment variable
     for determing the locations of styles.css and js/main.js.
     """
-    index_path = get_index_path()
-    js_dir_path = get_js_dir_path()
-    styles_path = get_styles_path()
+    index_path = audiobooks.config.get_index_path()
+    js_dir_path = audiobooks.config.get_js_dir_path()
+    styles_path = audiobooks.config.get_styles_path()
     start_html = fr"""        <!DOCTYPE html>
         <html lang="en">
           <head>
@@ -1002,7 +977,7 @@ def create_start_html(body_class="tables"):
                 <ul class="menu">
                   <li><a href="{index_path}">Audiobooks</a></li>
                   <li><a href="{index_path}?authors">Authors</a></li>
-                  <li><a href="{index_path}?summaries">Summaries</a></li>
+                  <li><a href="{index_path}?summaries">Summary</a></li>
                   <li><a href="{index_path}?about">About</a></li>
                   <li class="blog"><a href="https://conradhalling.com/blog/">Blog</a></li>
                   <!--
@@ -1102,7 +1077,7 @@ def get_author_data(conn, author_id):
             name_sort_key = author["forename"].upper()
         else:
             name_sort_key = author["surname"] + " " + author["forename"]
-        author["name_sort_key"] = name_sort_key.upper() 
+        author["name_sort_key"] = name_sort_key.upper()
     return author
 
 
@@ -1334,7 +1309,7 @@ def get_translator_data(conn, translator_id):
             "surname": surname,
             "forename": forename
         }
-        
+
         # Compute the display_name attribute.
         if translator["surname"] is None:
             translator["display_name"] = translator["forename"]
@@ -1450,7 +1425,6 @@ def display_book(conn, book_id):
         else:
             html_str += create_book_html(book)
     else:
-        # html_str += f'    <h1>Book ID {book_id} Not Found</h1>\n'
         html_str += f'    <h1>Invalid book ID "{html.escape(book_id)}"</h1>\n'
     html_str += create_end_html()
     print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
@@ -1511,7 +1485,7 @@ def display_translator(conn, translator_id):
 def main():
     """
     Carefully manage exceptions to make sure the database file is closed.
-    
+
     Carefully manage HTTP Content-Type headers. Each display function prints
     its own Content-Type header so the application can return HTML, an image,
     CSV, JSON, etc.
@@ -1538,10 +1512,15 @@ def main():
             display_translator(conn, fs["translator_id"].value)
         else:
             display_all_books(conn)
-    except Exception:
-        # Send a Content-Type header before printing the exception.
-        print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
-        print(cgitb.html(sys.exc_info()))
+    except Exception as exc:
+        # Send the exception to the browser when AUDIOBOOKS_ENVIRONMENT is not
+        # PRODUCTION.
+        if os.environ.get('AUDIOBOOKS_ENVIRONMENT') != 'PRODUCTION':
+            # Send a Content-Type header before printing the exception.
+            print("Content-Type: text/html; charset=utf-8\r\n\r\n", end="")
+            print(cgitb.html(sys.exc_info()))
+        else:
+            raise(exc)
     finally:
         if conn:
             conn.close()
