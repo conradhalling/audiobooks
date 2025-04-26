@@ -43,7 +43,7 @@ def main():
         elif "narrator_id" in fs:
             audiobooks.display.display_narrator(fs["narrator_id"].value)
         elif "summaries" in fs:
-            audiobooks.display.display_summaries()
+            audiobooks.display.display_summary()
         elif "translator_id" in fs:
             audiobooks.display.display_translator(fs["translator_id"].value)
         else:

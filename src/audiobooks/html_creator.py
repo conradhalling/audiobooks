@@ -102,53 +102,6 @@ def create_all_authors_table_html(authors):
     return html_str
 
 
-def create_summaries_html(summaries):
-    html_str = '      <h1>Summary</h1>\n'
-    html_str += '      <h2>Annual Totals</h2>\n'
-    html_str += '      <table>\n'
-    html_str += '        <caption>Number of audiobooks acquired and finished each year</caption>\n'
-    html_str += '        <thead>\n'
-    html_str += '          <tr>\n'
-    html_str += '            <th>Year</th>\n'
-    html_str += '            <th>Acquired</th>\n'
-    html_str += '            <th>Finished</th>\n'
-    html_str += '          </tr>\n'
-    html_str += '        </thead>\n'
-    html_str += '        <tbody>\n'
-    for row in summaries["counts_by_year"]:
-        html_str += '        <tr>\n'
-        html_str += f'          <td class="right">{html.escape(str(row["year"]))}</td>\n'
-        html_str += f'          <td class="right">{html.escape(str(row["acquired"]))}</td>\n'
-        html_str += f'          <td class="right">{html.escape(str(row["finished"]))}</td>\n'
-        html_str += f'        </tr>\n'
-    html_str += '        </tbody>\n'
-    html_str += '      </table>\n'
-
-    html_str += '      <h2>Grand Totals</h2>\n'
-    html_str += '      <table>\n'
-    html_str += '        <caption>All Audiobooks Finished includes multiple listens of audiobooks</caption>'
-    html_str += '        <tbody>\n'
-    html_str += '          <tr>\n'
-    html_str += '            <th>Audiobooks Acquired</th>\n'
-    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["acquired"]))}</td>\n'
-    html_str += '          </tr>\n'
-    html_str += '          <tr>\n'
-    html_str += '            <th>Distinct Audiobooks Finished</th>\n'
-    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["distinct_finished"]))}</td>\n'
-    html_str += '          </tr>\n'
-    html_str += '          <tr>\n'
-    html_str += '            <th>Audiobooks Not Finished</th>\n'
-    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["not_finished"]))}</td>\n'
-    html_str += '          </tr>\n'
-    html_str += '          <tr>\n'
-    html_str += '            <th>All Audiobooks Finished</th>\n'
-    html_str += f'            <td class="right">{html.escape(str(summaries["totals"]["all_finished"]))}</td>\n'
-    html_str += '          </tr>\n'
-    html_str += '        </tbody>\n'
-    html_str += '      </table>\n'
-    return html_str
-
-
 def create_all_books_table_html(books):
     """
     Create the HTML for all books.
@@ -493,6 +446,53 @@ def create_start_html(body_class="tables"):
             <main class="{body_class}">
         """
     return textwrap.dedent(start_html)
+
+
+def create_summary_html(summary):
+    html_str = '      <h1>Summary</h1>\n'
+    html_str += '      <h2>Annual Totals</h2>\n'
+    html_str += '      <table>\n'
+    html_str += '        <caption>Number of audiobooks acquired and finished each year</caption>\n'
+    html_str += '        <thead>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Year</th>\n'
+    html_str += '            <th>Acquired</th>\n'
+    html_str += '            <th>Finished</th>\n'
+    html_str += '          </tr>\n'
+    html_str += '        </thead>\n'
+    html_str += '        <tbody>\n'
+    for row in summary["counts_by_year"]:
+        html_str += '        <tr>\n'
+        html_str += f'          <td class="right">{html.escape(str(row["year"]))}</td>\n'
+        html_str += f'          <td class="right">{html.escape(str(row["acquired"]))}</td>\n'
+        html_str += f'          <td class="right">{html.escape(str(row["finished"]))}</td>\n'
+        html_str += f'        </tr>\n'
+    html_str += '        </tbody>\n'
+    html_str += '      </table>\n'
+
+    html_str += '      <h2>Grand Totals</h2>\n'
+    html_str += '      <table>\n'
+    html_str += '        <caption>All Audiobooks Finished includes multiple listens of audiobooks</caption>'
+    html_str += '        <tbody>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Audiobooks Acquired</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summary["totals"]["acquired"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Distinct Audiobooks Finished</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summary["totals"]["distinct_finished"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>Audiobooks Not Finished</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summary["totals"]["not_finished"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '          <tr>\n'
+    html_str += '            <th>All Audiobooks Finished</th>\n'
+    html_str += f'            <td class="right">{html.escape(str(summary["totals"]["all_finished"]))}</td>\n'
+    html_str += '          </tr>\n'
+    html_str += '        </tbody>\n'
+    html_str += '      </table>\n'
+    return html_str
 
 
 def create_translator_html(translator):

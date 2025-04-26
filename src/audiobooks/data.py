@@ -9,7 +9,7 @@ def get_acquisition_for_book(book_id):
     """
     Given a book's ID, return a dict containing the acquisition's attributes.
 
-    The acquisition's attributes are:
+    An acquisition's attributes are:
         id
         username
         vendor_name
@@ -44,7 +44,7 @@ def get_author(author_id):
     Return a dict containing the author's attributes, excluding the books
     attribute.
 
-    The author's attributes are:
+    An author's attributes are:
         id
         surname
         forename
@@ -90,7 +90,7 @@ def get_author_with_books(author_id):
     Given an author's ID, return a dict containing the author's attributes
     including the books written by the author.
 
-    The author's attributes are:
+    An author's attributes are:
         id
         surname
         forename
@@ -114,11 +114,46 @@ def get_author_with_books(author_id):
     return author
 
 
+def get_authors_for_book(book_id):
+    """
+    Given a book's ID, return a list of the authors of the book.
+
+    Return an empty list if no authors are found.
+
+    For each author, do not include the books attribute, since that would cause
+    an infinite loop since each book attribute has an authors attribute.
+
+    An author's attributes are:
+        id
+        surname
+        forename
+        display_name
+        reverse_name
+        name_sort_key
+    """
+    rows = db.author.select_ids_for_book(book_id)
+    authors = []
+    for row in rows:
+        (author_id,) = row
+        author = get_author(author_id)
+        authors.append(author)
+    return authors
+
+
 def get_authors_with_books():
     """
     Return a list of sorted author dicts, where the author attributes include
     the books written by the author and the list is sorted by the
     author["name_sort_key"] attribute.
+
+    An author's attributes are:
+        id
+        surname
+        forename
+        display_name
+        reverse_name
+        name_sort_key
+        books -- a list of book dicts
     """
     authors = []
     rows = db.author.select_ids()
@@ -130,29 +165,11 @@ def get_authors_with_books():
     return sorted_authors
 
 
-def get_authors_for_book(book_id):
-    """
-    Given a book's ID, return a list of authors of the book.
-
-    Return an empty list if no authors are found.
-
-    For each author, do not include the books attribute, since that would cause
-    an infinite loop since each book attribute has an authors attribute.
-    """
-    rows = db.author.select_ids_for_book(book_id)
-    authors = []
-    for row in rows:
-        (author_id,) = row
-        author = get_author(author_id)
-        authors.append(author)
-    return authors
-
-
 def get_book(book_id):
     """
     Given a book's ID, return a dict containing the book's attributes.
 
-    The book's attributes are:
+    A book's attributes are:
         id
         title
         book_pub_date
@@ -191,31 +208,35 @@ def get_book(book_id):
     book["translators"] = get_translators_for_book(book_id)
     book["narrators"] = get_narrators_for_book(book_id)
 
-    # Acquisition
     acquisition = get_acquisition_for_book(book_id)
     book["acquisition"] = acquisition
 
-    # Notes for book.
     notes = get_notes_for_book(book_id)
     book["notes"] = notes
 
     # Create computed attributes.
     # Create a key for sorting by title.
     book["title_sort_key"] = get_title_sort_key(book["title"])
+
     # Create a key for sorting by length.
     book["length_sort_key"] = 60 * int(book["hours"]) + int(book["minutes"])
+
     # Convert hours and minutes to an hh:mm string.
     book["length"] = f'{book["hours"]}:{book["minutes"]:02d}'
+
     # Get a combined rating for the book from the first notes record.
     book["rating"] = get_rating(book["notes"][0])
+
     # Convert the finish_date to a string.
     book["finish_date_string"] = book["notes"][0]["finish_date"]
     if book["finish_date_string"] is None:
         book["finish_date_string"] = ""
+
     # Convert the status to a string.
     book["status_string"] = book["notes"][0]["status"]
     if book["status_string"] is None:
         book["status_string"] = ""
+
     # Compute the acquisition_date attribute.
     book["acquisition_date"] = book["acquisition"]["acquisition_date"]
     return book
@@ -225,6 +246,26 @@ def get_books():
     """
     Return a list of all books, where the list is sorted by the
     book["title_sort_key"] attribute.
+
+    A book's attributes are:
+        id
+        title
+        book_pub_date
+        audio_pub_date
+        hours
+        minutes
+        authors -- a list of author dicts
+        translators -- a list of translator dicts
+        narrators -- a list of narrator dicts
+        acquisition
+        notes -- a list of note dicts
+        title_sort_key
+        length_sort_key
+        length
+        rating
+        finish_date_string
+        status_string
+        acquisition_date
     """
     books = []
     rows = db.book.select_ids()
@@ -241,7 +282,7 @@ def get_narrator(narrator_id):
     Given a narrator's ID, return a dict containing the narrator's attributes
     except the books attribute.
 
-    The narrator's attributes are:
+    A narrator's attributes are:
         id
         surname
         forename
@@ -252,7 +293,6 @@ def get_narrator(narrator_id):
     narrator = None
     row = db.narrator.select_narrator(narrator_id)
     if row is not None:
-        # Store the attributes selected from the database.
         id, surname, forename = row
         narrator = {
             "id": id,
@@ -273,7 +313,7 @@ def get_narrator_with_books(narrator_id):
     Given a narrator's ID, return a dict containing the narrator's attributes
     including the books narrated by the narrator.
 
-    The narrator's attributes are:
+    A narrator's attributes are:
         id
         surname
         forename
@@ -300,6 +340,13 @@ def get_narrators_for_book(book_id):
     Given a book's ID, return a list of dicts containing the attributes of
     the narrators of the book.
 
+    A narrator's attributes are:
+        id
+        surname
+        forename
+        display_name
+        books -- a list of book dicts
+
     Return an empty list if no narrators are found.
     """
     rows = db.narrator.select_ids_for_book(book_id)
@@ -311,15 +358,43 @@ def get_narrators_for_book(book_id):
     return narrators
 
 
-def get_note_for_book(book_id):
-    pass
+def get_note(note_id):
+    """
+    Given a note's ID, return a dict containing the note's attributes.
+
+    A note's attributes are:
+        id
+        username
+        status
+        finish_date
+        rating_stars
+        rating_description
+        comments
+
+    Return None if the note doesn't exist.
+    """
+    note = None
+    row = db.note.select_note(note_id)
+    if row is not None:
+        (id, username, status, finish_date, rating_stars, rating_description,
+            comments) = row
+        note = {
+            "id": id,
+            "username": username,
+            "status": status,
+            "finish_date": finish_date,
+            "rating_stars": rating_stars,
+            "rating_description": rating_description,
+            "comments": comments,
+        }
+    return note
 
 
 def get_notes_for_book(book_id):
     """
     Given a book's ID, return a list of dicts containing the note attributes.
 
-    The note's attributes are:
+    A note's attributes are:
         id
         username
         status
@@ -330,20 +405,11 @@ def get_notes_for_book(book_id):
 
     Return an empty list if no notes are found.
     """
-    rows = db.note.select_notes_for_book(book_id)
+    rows = db.note.select_ids_for_book(book_id)
     notes = []
     for row in rows:
-        (id, username, status, finish_date, rating_stars, rating_description,
-         comments) = row
-        note = {
-            "id": id,
-            "username": username,
-            "status": status,
-            "finish_date": finish_date,
-            "rating_stars": rating_stars,
-            "rating_description": rating_description,
-            "comments": comments,
-        }
+        (note_id,) = row
+        note = get_note(note_id)
         notes.append(note)
     return notes
 
@@ -360,9 +426,9 @@ def get_rating(note):
     return rating
 
 
-def get_summaries():
+def get_summary():
     """
-    Return a dict containing summaries attributes.
+    Return a dict containing the summary's attributes.
 
     The attributes are:
         counts_by_year: list of dicts:
@@ -375,7 +441,7 @@ def get_summaries():
             not_finished
             all_finished
     """
-    summaries = {}
+    summary = {}
     # year_counts is a list of dicts with keys "year", "acquired", and
     # finished" and values the year, the number of books acquired that
     # year, and the number of books finished that year.
@@ -389,7 +455,7 @@ def get_summaries():
             "finished": finished,
         }
         counts_by_year.append(year_dict)
-    summaries["counts_by_year"] = counts_by_year
+    summary["counts_by_year"] = counts_by_year
 
     # totals is a dict containing acquired, distinct_finished, not_finished,
     # and all_finished totals.
@@ -419,8 +485,26 @@ def get_summaries():
         "not_finished": total_books_unfinished,
         "all_finished": total_books_finished,
     }
-    summaries["totals"] = totals
-    return summaries
+    summary["totals"] = totals
+    return summary
+
+
+def get_title_sort_key(title):
+    """
+    Return a case-insensitive sort key for the title by removing "The", "A",
+    or "An" from the beginning of the title and converting the result to
+    an uppercase string.
+    """
+    if title.startswith("A "):
+        title_sort_key = title[2:]
+    elif title.startswith("An "):
+        title_sort_key = title[3:]
+    elif title.startswith("The "):
+        title_sort_key = title[4:]
+    else:
+        title_sort_key = title
+    title_sort_key = title_sort_key.upper()
+    return title_sort_key
 
 
 def get_translator(translator_id):
@@ -428,7 +512,7 @@ def get_translator(translator_id):
     Return a dict containing the translator's attributes, excluding the books
     attribute.
 
-    The translator's attributes are:
+    A translator's attributes are:
         id
         surname
         forename
@@ -455,12 +539,34 @@ def get_translator(translator_id):
     return translator
 
 
+def get_translators_for_book(book_id):
+    """
+    Given a book's ID, return a list of dicts containing the attributes of
+    the translators of the book.
+
+    A translator's attributes are:
+        id
+        surname
+        forename
+        display_name  -- forename + " " + surname
+
+    Return an empty list if no translators are found.
+    """
+    rows = db.translator.select_ids_for_book(book_id)
+    translators = []
+    for row in rows:
+        (translator_id,) = row
+        translator = get_translator(translator_id)
+        translators.append(translator)
+    return translators
+
+
 def get_translator_with_books(translator_id):
     """
     Given a translator's ID, return a dict containing the translator's
     attributes including the books translated by the translator.
 
-    The translator's attributes are:
+    A translator's attributes are:
         id
         surname
         forename
@@ -478,37 +584,3 @@ def get_translator_with_books(translator_id):
             book = get_book(book_id)
             translator["books"].append(book)
     return translator
-
-
-def get_translators_for_book(book_id):
-    """
-    Given a book's ID, return a list of dicts containing the attributes of
-    the translators of the book.
-
-    Return an empty list if no translators are found.
-    """
-    rows = db.translator.select_ids_for_book(book_id)
-    translators = []
-    for row in rows:
-        (translator_id,) = row
-        translator = get_translator(translator_id)
-        translators.append(translator)
-    return translators
-
-
-def get_title_sort_key(title):
-    """
-    Return a case-insensitive sort key for the title by removing "The", "A",
-    or "An" from the beginning of the title and converting the result to
-    an uppercase string.
-    """
-    if title.startswith("A "):
-        title_sort_key = title[2:]
-    elif title.startswith("An "):
-        title_sort_key = title[3:]
-    elif title.startswith("The "):
-        title_sort_key = title[4:]
-    else:
-        title_sort_key = title
-    title_sort_key = title_sort_key.upper()
-    return title_sort_key

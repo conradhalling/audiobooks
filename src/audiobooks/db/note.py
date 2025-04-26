@@ -135,12 +135,39 @@ def select_id(user_id, book_id, status_id, finish_date, rating_id, comments):
     return note_id
 
 
-def select_notes_for_book(book_id):
+def select_ids_for_book(book_id):
     """
-    Given a book's ID, return result set rows containing the notes
-    in chronological order using tbl_note.id.
+    Given a book's ID, return result set rows containing the IDs
+    of book notes in chronological order using tbl_note.id.
     """
-    sql_select_notes_for_book = """
+    sql_select_ids_for_book = """
+        SELECT
+            tbl_note.id
+        FROM
+            tbl_note
+            INNER JOIN tbl_user
+                ON tbl_note.user_id = tbl_user.id
+            LEFT OUTER JOIN tbl_status
+                ON tbl_note.status_id = tbl_status.id
+            LEFT OUTER JOIN tbl_rating
+                ON tbl_note.rating_id = tbl_rating.id
+        WHERE
+            tbl_note.book_id = ?
+        ORDER BY
+            tbl_note.id
+    """
+    cur = db.conn.execute(sql_select_ids_for_book, (book_id,))
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+
+def select_note(note_id):
+    """
+    Given a note's ID, return a result set row containing the note's
+    attributes.
+    """
+    sql_select_note = """
         SELECT
             tbl_note.id,
             tbl_user.username,
@@ -158,14 +185,12 @@ def select_notes_for_book(book_id):
             LEFT OUTER JOIN tbl_rating
                 ON tbl_note.rating_id = tbl_rating.id
         WHERE
-            tbl_note.book_id = ?
-        ORDER BY
-            tbl_note.id
+            tbl_note.id = ?
     """
-    cur = db.conn.execute(sql_select_notes_for_book, (book_id,))
-    rows = cur.fetchall()
+    cur = db.conn.execute(sql_select_note, (note_id,))
+    row = cur.fetchone()
     cur.close()
-    return rows
+    return row
 
 
 def update():
