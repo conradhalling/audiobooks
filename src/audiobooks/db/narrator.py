@@ -2,8 +2,11 @@
 Database interactions with tbl_narrator.
 """
 
+import logging
+
 from .. import db
 
+logger = logging.getLogger(__name__)
 
 def create_table():
     """
@@ -47,9 +50,11 @@ def save(surname, forename):
     Otherwise, insert the narrator and get the new narrator_id.
     Return the narrator_id.
     """
+    logger.debug(f"surname: '{surname}'; forename: '{forename}'")
     row = select_id(surname, forename)
     narrator_id = None
     if row is not None:
+        logger.debug(f"row: {row}")
         (narrator_id,) = row
     if narrator_id is None:
         narrator_id = insert(surname, forename)
@@ -73,12 +78,9 @@ def select_id(surname, forename):
             AND tbl_narrator.forename = ?
     """
     cur = db.conn.execute(sql_select_id, (surname, forename,))
-    db_row = cur.fetchone()
+    row = cur.fetchone()
     cur.close()
-    narrator_id = None
-    if db_row is not None:
-        narrator_id = db_row[0]
-    return narrator_id
+    return row
 
 
 # def select_narrators_for_book(book_id):
